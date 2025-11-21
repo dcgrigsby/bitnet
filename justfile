@@ -1,2 +1,2 @@
-test:
-    uv run pytest
+test *args:
+    uv run pytest {{ args }}
