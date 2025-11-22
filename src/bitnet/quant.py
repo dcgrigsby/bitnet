@@ -1,3 +1,7 @@
+"""Quantization functions for BitNet b1.58.
+
+Provides per-token 8-bit activation quantization and per-tensor ternary weight quantization.
+"""
 import torch
 
 
@@ -9,7 +13,8 @@ def activation_quant(x: torch.Tensor) -> torch.Tensor:
     This is used during training.
 
     Args:
-        x: Activation tensor of shape [batch_size, seq_len, hidden_size] or [batch_size, hidden_size]
+        x: Activation tensor of shape [batch_size, seq_len, hidden_size] or 
+           [batch_size, hidden_size]
 
     Returns:
         Dequantized tensor of same shape as input

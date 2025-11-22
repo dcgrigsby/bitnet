@@ -1,3 +1,4 @@
+"""Configuration for BitNet b1.58 model architecture and training."""
 from dataclasses import dataclass
 
 
