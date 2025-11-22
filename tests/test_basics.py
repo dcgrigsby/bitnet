@@ -1,4 +1,3 @@
-"""Tests for quantization functions (activations and weights)."""
 import pytest
 import torch
 
@@ -12,7 +11,7 @@ def test_activation_quant_per_token_scaling():
     to handle activation outliers. BitNet uses per-token absmax quantization
     for 8-bit activations, which pairs with its unique ternary weight
     quantization. Each token's max absolute value should be preserved.
-    """
+"""
 
     x = torch.randn(4, 10, 768)
     y = activation_quant(x)
@@ -32,7 +31,7 @@ def test_activation_quant_produces_discrete_levels():
 
     Verifies that activation quantization actually happened and didn't
     just return the input unchanged.
-    """
+"""
 
     x = torch.randn(2, 8, 768)
     y = activation_quant(x)
@@ -62,7 +61,7 @@ def test_activation_quant_gradient_flow():
     model parameters won't receive gradients during training and the model
     can't learn. The STE (Straight-Through Estimator) ensures gradients
     bypass the discrete quantization operation so training works.
-    """
+"""
 
     x = torch.randn(2, 10, 512, requires_grad=True)
     y = activation_quant(x)
@@ -163,7 +162,7 @@ def test_weight_quant_scale_factor():
     BitNet uses absmean quantization: scale = 1 / mean(|w|)
     After quantization to {-1, 0, 1} and dequantization,
     the maximum absolute value should equal 1/scale = mean(|w|)
-    """
+"""
 
     # Create weights with known, controlled mean absolute value
     # mean(|w|) = (4*2.0 + 4*1.0 + 2*0.0) / 10 = 12/10 = 1.2

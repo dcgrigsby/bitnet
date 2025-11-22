@@ -1,7 +1,3 @@
-"""Quantization functions for BitNet b1.58.
-
-Provides per-token 8-bit activation quantization and per-tensor ternary weight quantization.
-"""
 import torch
 
 
@@ -17,7 +13,7 @@ def activation_quant(x: torch.Tensor) -> torch.Tensor:
 
     Returns:
         Dequantized tensor of same shape as input
-    """
+"""
 
     # Find max absolute value per token (last dimension is kept)
     scale = 127.0 / x.abs().max(dim=-1, keepdim=True).values.clamp(min=1e-5)
@@ -41,7 +37,7 @@ def weight_quant(w: torch.Tensor) -> torch.Tensor:
 
     Returns:
         Ternary tensor of shape [out_features, in_features]
-    """
+"""
 
     # Compute scale as mean absolute value
     scale = 1.0 / w.abs().mean().clamp(min=1e-5)
