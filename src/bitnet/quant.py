@@ -6,14 +6,13 @@ import torch
 
 
 def activation_quant(x: torch.Tensor) -> torch.Tensor:
-    """
-    Per-token quantization to 8 bits.
+    """Per-token quantization to 8 bits.
 
     Quantizes activations per token (per row) to int8, then dequantizes.
     This is used during training.
 
     Args:
-        x: Activation tensor of shape [batch_size, seq_len, hidden_size] or 
+        x: Activation tensor of shape [batch_size, seq_len, hidden_size] or
            [batch_size, hidden_size]
 
     Returns:
@@ -32,8 +31,7 @@ def activation_quant(x: torch.Tensor) -> torch.Tensor:
     return x_dequant
 
 def weight_quant(w: torch.Tensor) -> torch.Tensor:
-    """
-    Per-tensor quantization to 1.58 bits.
+    """Per-tensor quantization to 1.58 bits.
 
     Quantizes weights per tensor to ternary {-1, 0, 1}.
     Uses absmean quantization as per the paper.
