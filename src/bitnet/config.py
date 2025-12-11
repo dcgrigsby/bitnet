@@ -15,13 +15,13 @@ class BitNetConfig:
 
     num_kv_heads: int = 12  # number per heads per layer
 
-    ffn_hidden_size: int = 3072 # inside each transformer
+    ffn_hidden_size: int = 3072  # inside each transformer
 
-    max_seq_length: int = 2048 
+    max_seq_length: int = 2048
 
-    norm_eps: float = 1e-5 # so you don't divide by zero
+    norm_eps: float = 1e-5  # so you don't divide by zero
 
-    learning_rate: float = 1.5e-3 # BitNet requires 5-7x higher LR than FP16 (Ma et al., 2024, arXiv:2402.17764)
+    learning_rate: float = 1.5e-3  # BitNet requires 5-7x higher LR (arXiv:2402.17764)
 
     weight_decay: float = 0.1  # first stage only
 
@@ -31,11 +31,8 @@ class BitNetConfig:
 
     adam_beta2: float = 0.95
 
-    lr_schedule: str = 'two_stage' 
-
-    wd_schedule: str = 'two_stage' 
-
     @property
     def head_dim(self) -> int:
         """Head dimension."""
         return self.hidden_size // self.num_heads
+
