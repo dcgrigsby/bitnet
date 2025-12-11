@@ -154,3 +154,57 @@ def train_step(
         wd_scheduler.step()
 
     return loss.item()
+
+
+def create_dummy_dataloader(config: BitNetConfig, num_batches: int = 4,
+                            batch_size: int = 2, seq_len: int = 10) -> DataLoader:
+    """Create a dummy dataloader for testing.
+
+    Args:
+        config: Model config
+        num_batches: Number of batches
+        batch_size: Batch size
+        seq_len: Sequence length
+
+    Returns:
+        DataLoader with dummy data
+    """
+    data = torch.randint(0, config.vocab_size, (num_batches * batch_size, seq_len))
+    dataset = TensorDataset(data)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
+    return dataloader
+
+def train_epoch(
+    model: BitNetModel,
+    dataloader: DataLoader,
+    optimizer: optim.Optimizer,
+    loss_fn: nn.Module,
+    lr_scheduler=None,
+    wd_scheduler=None,
+) -> float:
+    """Train for one epoch.
+
+    Args:
+        model: BitNetModel instance
+        dataloader: DataLoader
+        optimizer: Optimizer
+        loss_fn: Loss function
+        lr_scheduler: Learning rate scheduler (optional)
+        wd_scheduler: Weight decay scheduler (optional)
+
+    Returns:
+        Average loss over epoch
+    """
+
+    total_loss = 0.0
+    num_batches = 0
+
+    model.train()
+
+    for batch in dataloader:
+        batch = batch[0]  # TensorDataset returns tuple
+        loss = train_step(model, batch, optimizer, loss_fn, lr_scheduler, wd_scheduler)
+        total_loss += loss
+        num_batches += 1
+
+    return total_loss / num_batches
