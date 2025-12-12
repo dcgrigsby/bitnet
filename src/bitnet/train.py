@@ -29,7 +29,7 @@ class TwoStageLRScheduler:
     ) -> None:
         self.optimizer: optim.Optimizer = optimizer
         self.total_steps: int = total_steps
-        self.current_step: int = 0
+        self.current_step: int = 1
 
         self.warmup_steps: int = config.warmup_steps
         self.peak_lr: float = config.learning_rate
