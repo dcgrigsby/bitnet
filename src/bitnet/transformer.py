@@ -1,6 +1,9 @@
+from typing import Any, Optional
+
 import torch
 import torch.nn as nn
 from torch.nn import RMSNorm
+from typing_extensions import override
 
 from bitnet.attention import Attention
 from bitnet.feedforward import FeedForward
@@ -17,10 +20,10 @@ class TransformerBlock(nn.Module):
         ffn_hidden_size: int,
         norm_eps: float = 1e-5,
         rope_theta: float = 10000.0,
-    ):
+    ) -> None:
         super().__init__()
 
-        self.attention = Attention(
+        self.attention: Attention = Attention(
             hidden_size,
             num_heads,
             num_kv_heads,
@@ -28,9 +31,10 @@ class TransformerBlock(nn.Module):
             rope_theta=rope_theta,
         )
 
-        self.feedforward = FeedForward(hidden_size, ffn_hidden_size, norm_eps=norm_eps)
+        self.feedforward: FeedForward = FeedForward(hidden_size, ffn_hidden_size, norm_eps=norm_eps)
 
-    def forward(self, x: torch.Tensor, attn_mask: torch.Tensor = None) -> torch.Tensor:
+    @override
+    def forward(self, x: torch.Tensor, attn_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass with residual connections.
 
         Args:
@@ -55,14 +59,14 @@ class TransformerBlock(nn.Module):
 class BitNetModel(nn.Module):
     """BitNet b1.58 model"""
 
-    def __init__(self, config):
+    def __init__(self, config: Any) -> None:
         super().__init__()
-        self.config = config
+        self.config: Any = config
 
         # Token embeddings
-        self.token_embeddings = nn.Embedding(config.vocab_size, config.hidden_size)
+        self.token_embeddings: nn.Embedding = nn.Embedding(config.vocab_size, config.hidden_size)
 
-        self.blocks = nn.ModuleList(
+        self.blocks: nn.ModuleList = nn.ModuleList(
             [
                 TransformerBlock(
                     config.hidden_size,
@@ -76,13 +80,14 @@ class BitNetModel(nn.Module):
         )
 
         # Final normalization
-        self.final_norm = RMSNorm(config.hidden_size, eps=config.norm_eps)
+        self.final_norm: RMSNorm = RMSNorm(config.hidden_size, eps=config.norm_eps)
 
         # Output projection (language modeling head)
-        self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
+        self.lm_head: nn.Linear = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
 
 
-    def forward(self, input_ids: torch.Tensor, attn_mask: torch.Tensor = None) -> torch.Tensor:
+    @override
+    def forward(self, input_ids: torch.Tensor, attn_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass.
 
         Args:

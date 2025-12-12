@@ -1,0 +1,22 @@
+{
+  "typeCheckingMode": "standard",
+  "include": ["src", "tests"],
+  "exclude": [".venv", ".git"],
+
+  "reportAny": "information",
+  "reportUnknownMemberType": "information",
+  "reportUnknownArgumentType": "information",
+  "reportUnknownParameterType": "warning",
+  "reportUnknownVariableType": "warning",
+  "reportUnannotatedClassAttribute": "warning",
+  "reportMissingParameterType": "warning",
+  "reportUnusedVariable": "warning",
+  "reportUnusedParameter": "warning",
+  "reportUnusedCallResult": "warning",
+
+  "reportMissingTypeArgument": "error",
+  "reportGeneralTypeIssues": "error",
+  "reportArgumentType": "error",
+  "reportAttributeAccessIssue": "error",
+  "reportImplicitOverride": "warning"
+}

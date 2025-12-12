@@ -1,15 +1,18 @@
 import math
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing_extensions import override
 
 from torch.nn import RMSNorm
 from bitnet.linear import BitLinear
 
 
 def get_rotary_freqs(
-    head_dim: int, seq_len: int, theta: float = 10000.0, device: torch.device = None
-) -> torch.tensor:
+    head_dim: int, seq_len: int, theta: float = 10000.0, device: Optional[torch.device] = None
+) -> torch.Tensor:
     """Compute rotary embedding frequencies.
 
     Args:
@@ -67,29 +70,30 @@ class Attention(nn.Module):
         num_kv_heads: int,
         norm_eps: float = 1e-5,
         rope_theta: float = 10000.0,
-    ):
+    ) -> None:
         super().__init__()
-        self.hidden_size = hidden_size
-        self.num_heads = num_heads  # number of q (query) heads
-        self.num_kv_heads = num_kv_heads
-        self.head_dim = hidden_size // num_heads
-        self.rope_theta = rope_theta
+        self.hidden_size: int = hidden_size
+        self.num_heads: int = num_heads  # number of q (query) heads
+        self.num_kv_heads: int = num_kv_heads
+        self.head_dim: int = hidden_size // num_heads
+        self.rope_theta: float = rope_theta
 
         assert num_heads % num_kv_heads == 0
-        self.heads_per_group = num_heads // num_kv_heads
+        self.heads_per_group: int = num_heads // num_kv_heads
 
         # Query, Key, Value projections (combined)
-        self.qkv_proj = BitLinear(
+        self.qkv_proj: BitLinear = BitLinear(
             hidden_size, (num_heads + 2 * num_kv_heads) * self.head_dim
         )
 
         # Output projection
-        self.out_proj = BitLinear(num_heads * self.head_dim, hidden_size)
+        self.out_proj: BitLinear = BitLinear(num_heads * self.head_dim, hidden_size)
 
         # Pre-attention normalization
-        self.norm = RMSNorm(hidden_size, eps=norm_eps)
+        self.norm: RMSNorm = RMSNorm(hidden_size, eps=norm_eps)
 
-    def forward(self, x: torch.Tensor, attn_mask: torch.Tensor = None) -> torch.Tensor:
+    @override
+    def forward(self, x: torch.Tensor, attn_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Attention forward pass.
 
         Args:

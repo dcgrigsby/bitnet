@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import RMSNorm
+from typing_extensions import override
 
 from bitnet.quant import activation_quant, weight_quant
 
@@ -13,26 +14,27 @@ class BitLinear(nn.Linear):
     and 8-bit activation quantization during training.
     """
 
-    def __init__(self, in_features: int, out_features: int, norm_eps: float = 1e-5):
+    def __init__(self, in_features: int, out_features: int, norm_eps: float = 1e-5) -> None:
         super().__init__(in_features, out_features, bias=False)
 
-        self.norm_eps = norm_eps
+        self.norm_eps: float = norm_eps
 
         # Pre-linear normalization
-        self.norm = RMSNorm(in_features, eps=norm_eps)
+        self.norm: RMSNorm = RMSNorm(in_features, eps=norm_eps)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    @override
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         """Forward pass with quantization.
 
         Args:
-            x: Input tensor of shape [batch_size, seq_len, in_features]
+            input: Input tensor of shape [batch_size, seq_len, in_features]
 
         Returns:
             Output tensor of shape [batch_size, seq_len, out_features]
         """
 
         # RMSNorm (preserves variance for stable quantization)
-        x_norm = self.norm(x)
+        x_norm = self.norm(input)
 
         # Quantize weight with STE
         w_quant = self.weight + (weight_quant(self.weight) - self.weight).detach()

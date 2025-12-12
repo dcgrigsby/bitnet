@@ -1,4 +1,4 @@
-import math
+from typing import Any, Optional
 
 import torch
 import torch.nn as nn
@@ -26,18 +26,18 @@ class TwoStageLRScheduler:
 
     def __init__(
         self, optimizer: optim.Optimizer, config: BitNetConfig, total_steps: int
-    ):
-        self.optimizer = optimizer
-        self.total_steps = total_steps
-        self.current_step = 0
+    ) -> None:
+        self.optimizer: optim.Optimizer = optimizer
+        self.total_steps: int = total_steps
+        self.current_step: int = 0
 
-        self.warmup_steps = config.warmup_steps
-        self.peak_lr = config.learning_rate
+        self.warmup_steps: int = config.warmup_steps
+        self.peak_lr: float = config.learning_rate
 
-        self.stage_boundary = total_steps // 2
+        self.stage_boundary: int = total_steps // 2
 
-        self.stage2_lr = self.peak_lr * 2.0 / 3.0
-        self.final_lr = self.peak_lr * 0.001
+        self.stage2_lr: float = self.peak_lr * 2.0 / 3.0
+        self.final_lr: float = self.peak_lr * 0.001
 
     def _lr_at_step(self, step: int) -> float:
         """Compute learning rate for a given global step (0-based)."""
@@ -59,7 +59,7 @@ class TwoStageLRScheduler:
         )
         return self.stage2_lr + (self.final_lr - self.stage2_lr) * progress
 
-    def step(self):
+    def step(self) -> None:
         """Advance one step and update optimizer learning rates."""
 
         lr = self._lr_at_step(self.current_step)
@@ -84,15 +84,15 @@ class TwoStageWDScheduler:
     Large weight decay causes weights to change frequently in Stage 2.
     """
 
-    def __init__(self, optimizer: optim.Optimizer, total_steps: int):
-        self.optimizer = optimizer
-        self.total_steps = total_steps
-        self.current_step = 0
-        self.stage1_wd = 0.1
-        self.stage2_wd = 0.0
-        self.stage1_steps = total_steps // 2
+    def __init__(self, optimizer: optim.Optimizer, total_steps: int) -> None:
+        self.optimizer: optim.Optimizer = optimizer
+        self.total_steps: int = total_steps
+        self.current_step: int = 0
+        self.stage1_wd: float = 0.1
+        self.stage2_wd: float = 0.0
+        self.stage1_steps: int = total_steps // 2
 
-    def step(self):
+    def step(self) -> None:
         """Update weight decay based on current step"""
 
         wd = self.stage1_wd if self.current_step < self.stage1_steps else self.stage2_wd
@@ -108,8 +108,8 @@ def train_step(
     batch: torch.Tensor,
     optimizer: optim.Optimizer,
     loss_fn: nn.Module,
-    lr_scheduler=None,
-    wd_scheduler=None,
+    lr_scheduler: Optional[TwoStageLRScheduler] = None,
+    wd_scheduler: Optional[TwoStageWDScheduler] = None,
 ) -> float:
     """Single training step with scheduler updates.
 
@@ -132,7 +132,7 @@ def train_step(
 
     # Compute loss (next token prediction)
     # Shift targets: predict next token given current tokens
-    batch_size, seq_len = batch.shape
+    _ = batch.shape  # Shape available if needed
     flat_logits = logits[:, :-1, :].reshape(-1, model.config.vocab_size)
     flat_targets = batch[:, 1:].reshape(-1)
 
@@ -142,7 +142,7 @@ def train_step(
     loss.backward()
 
     # Gradient clipping (important for stability)
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    _ = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
     # Optimizer step
     optimizer.step()
@@ -156,8 +156,9 @@ def train_step(
     return loss.item()
 
 
-def create_dummy_dataloader(config: BitNetConfig, num_batches: int = 4,
-                            batch_size: int = 2, seq_len: int = 10) -> DataLoader:
+def create_dummy_dataloader(
+    config: BitNetConfig, num_batches: int = 4, batch_size: int = 2, seq_len: int = 10
+) -> DataLoader[Any]:
     """Create a dummy dataloader for testing.
 
     Args:
@@ -174,13 +175,14 @@ def create_dummy_dataloader(config: BitNetConfig, num_batches: int = 4,
     dataloader = DataLoader(dataset, batch_size=batch_size)
     return dataloader
 
+
 def train_epoch(
     model: BitNetModel,
-    dataloader: DataLoader,
+    dataloader: DataLoader[Any],
     optimizer: optim.Optimizer,
     loss_fn: nn.Module,
-    lr_scheduler=None,
-    wd_scheduler=None,
+    lr_scheduler: Optional[TwoStageLRScheduler] = None,
+    wd_scheduler: Optional[TwoStageWDScheduler] = None,
 ) -> float:
     """Train for one epoch.
 
@@ -199,7 +201,7 @@ def train_epoch(
     total_loss = 0.0
     num_batches = 0
 
-    model.train()
+    _ = model.train()
 
     for batch in dataloader:
         batch = batch[0]  # TensorDataset returns tuple
