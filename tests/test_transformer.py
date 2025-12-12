@@ -127,8 +127,10 @@ def test_bitnet_model_forward_backward() -> None:
     assert model.token_embeddings.weight.grad is not None
 
     # Check some block parameters have gradients
-    assert model.blocks[0].attention.qkv_proj.weight.grad is not None
-    assert model.blocks[0].feedforward.gate_up.weight.grad is not None
+    block_0 = model.blocks[0]
+    assert isinstance(block_0, TransformerBlock)
+    assert block_0.attention.qkv_proj.weight.grad is not None
+    assert block_0.feedforward.gate_up.weight.grad is not None
 
     # Check output head has gradients
     assert model.lm_head.weight.grad is not None
@@ -170,9 +172,15 @@ def test_bitnet_model_gradient_flow() -> None:
     loss.backward()
 
     # Check gradients in first, middle, and last blocks
-    assert model.blocks[0].attention.qkv_proj.weight.grad is not None
-    assert model.blocks[1].feedforward.gate_up.weight.grad is not None
-    assert model.blocks[2].attention.out_proj.weight.grad is not None
+    block_0 = model.blocks[0]
+    block_1 = model.blocks[1]
+    block_2 = model.blocks[2]
+    assert isinstance(block_0, TransformerBlock)
+    assert isinstance(block_1, TransformerBlock)
+    assert isinstance(block_2, TransformerBlock)
+    assert block_0.attention.qkv_proj.weight.grad is not None
+    assert block_1.feedforward.gate_up.weight.grad is not None
+    assert block_2.attention.out_proj.weight.grad is not None
 
     # Gradients should be bounded
     for param in model.parameters():
