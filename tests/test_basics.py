@@ -4,7 +4,7 @@ import torch
 from bitnet.quant import activation_quant, weight_quant
 
 
-def test_activation_quant_per_token_scaling():
+def test_activation_quant_per_token_scaling() -> None:
     """Test that each token is independently scaled to int8 range.
 
     Per-token quantization (not per-tensor) is standard for LLM quantization
@@ -26,7 +26,7 @@ def test_activation_quant_per_token_scaling():
                 assert torch.isclose(quantized_max, original_max, rtol=0.02)
 
 
-def test_activation_quant_produces_discrete_levels():
+def test_activation_quant_produces_discrete_levels() -> None:
     """Test that quantization produces discrete, not continous, vales.
 
     Verifies that activation quantization actually happened and didn't
@@ -46,7 +46,7 @@ def test_activation_quant_produces_discrete_levels():
             assert unique_count <= 256
 
 
-def test_activation_quant_gradient_flow():
+def test_activation_quant_gradient_flow() -> None:
     """Test that gradients flow through quantization via STE.
 
     How this works:
@@ -68,7 +68,7 @@ def test_activation_quant_gradient_flow():
 
     # Create scalar loss and trigger backprop through the graph
     loss = y.sum()
-    loss.backward()
+    _ = loss.backward()
 
     # Verify gradients reached x via the computational graph
     assert x.grad is not None, "No gradients received"
@@ -77,7 +77,7 @@ def test_activation_quant_gradient_flow():
     assert x.grad.abs().max() < 1000, "Gradient explosion detected"
 
 
-def test_activation_quant_edge_cases():
+def test_activation_quant_edge_cases() -> None:
     """Test quantization handles zeros, small values, and large values."""
 
     # All zeros - should produce zeros
@@ -98,7 +98,7 @@ def test_activation_quant_edge_cases():
     assert not torch.isinf(y_large).any()
 
 
-def test_weight_quant_exact_ternary():
+def test_weight_quant_exact_ternary() -> None:
     """Test that output has exactly 3 unique values: {-α, 0, +α}."""
 
     # Craft weights that will definitely produce all 3 ternary values
@@ -126,10 +126,10 @@ def test_weight_quant_exact_ternary():
     assert torch.isclose(non_zero[0], -non_zero[1], rtol=1e-5)
 
 
-def test_weight_quant_sign_preservation():
+def test_weight_quant_sign_preservation() -> None:
     """Test ternary quantization preserves sign for large weights, zeros small weights."""
 
-    torch.manual_seed(42)  # Reproducibility
+    _ = torch.manual_seed(42)  # Reproducibility
 
     # Create controlled distribution
     w = torch.cat(
@@ -156,7 +156,7 @@ def test_weight_quant_sign_preservation():
     assert zero_rate > 0.7
 
 
-def test_weight_quant_scale_factor():
+def test_weight_quant_scale_factor() -> None:
     """Test that scale factor is computed correctly from absmean.
 
     BitNet uses absmean quantization: scale = 1 / mean(|w|)
@@ -211,7 +211,7 @@ def test_weight_quant_scale_factor():
     ).all()
 
 
-def test_weight_quant_scale_factor_simple():
+def test_weight_quant_scale_factor_simple() -> None:
     """Simplified test: verify scale factor with perfectly controlled weights."""
 
     # Use weights where absmean = 1.0 for easy calculation
@@ -231,7 +231,7 @@ def test_weight_quant_scale_factor_simple():
     assert torch.allclose(w_quant, w, atol=0.01)
 
 
-def test_weight_quant_scale_factor_known_mean():
+def test_weight_quant_scale_factor_known_mean() -> None:
     """Test scale factor with various known mean absolute values."""
 
     test_cases = [
@@ -254,11 +254,11 @@ def test_weight_quant_scale_factor_known_mean():
         assert torch.isclose(actual_max, torch.tensor(expected_max_abs), rtol=0.02)
 
 
-def test_weight_quant_scale_computation_directly():
+def test_weight_quant_scale_computation_directly() -> None:
     """Test the scale computation formula directly."""
 
     # Create deterministic weights
-    torch.manual_seed(42)
+    _ = torch.manual_seed(42)
     w = torch.randn(100, 50)
 
     # Compute scale manually (matching implementation)
