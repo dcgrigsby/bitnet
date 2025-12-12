@@ -119,3 +119,58 @@ def test_training_updates_all_parameters():
     assert components_updated["attention"], "Attention not updated"
     assert components_updated["feedforward"], "Feedforward not updated"
     assert components_updated["lm_head"], "LM head not updated"
+
+
+def test_training_mode_vs_eval_mode():
+    """Test model behaves consistently in train vs eval mode."""
+
+    config = BitNetConfig(
+        num_layers=2, hidden_size=256, num_heads=4, num_kv_heads=4, ffn_hidden_size=512
+    )
+
+    model = BitNetModel(config)
+
+    input_ids = torch.randint(0, config.vocab_size, (2, 10))
+
+    # Training mode
+    _ = model.train()
+    with torch.no_grad():
+        logits_train = model(input_ids)
+
+    # Eval mode
+    _ = model.eval()
+    with torch.no_grad():
+        logits_eval = model(input_ids)
+
+    # For deterministic operations, outputs should be identical
+    # (no dropout in this model, so should match exactly)
+    assert torch.allclose(logits_train, logits_eval)
+
+
+def test_model_logits_distribution():
+    """Test model logits have reasonable distribution."""
+
+    config = BitNetConfig(num_layers=2, vocab_size=1000)
+    model = BitNetModel(config)
+    _ = model.eval()
+
+    with torch.no_grad():
+        batch = torch.randint(0, config.vocab_size, (4, 16))
+        logits = model(batch)
+
+        # Logits should span a reasonable range
+        assert logits.min() < 0  # Some negative logits
+        assert logits.max() > 0  # Some positive logits
+
+        # Logits shouldn't be too extreme
+        assert logits.abs().max() < 100
+
+        # Each position should have varied predictions
+        for b in range(4):
+            for t in range(16):
+                token_logits = logits[b, t, :]
+                top_5 = torch.topk(token_logits, k=5).values
+                # Top 5 should have different values
+                assert len(torch.unique(top_5)) >= 4
+
+
