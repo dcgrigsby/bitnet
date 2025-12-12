@@ -6,7 +6,7 @@ import torch
 from bitnet.attention import Attention, apply_rotary_emb, get_rotary_freqs
 
 
-def test_get_rotary_freqs_position_dependent():
+def test_get_rotary_freqs_position_dependent() -> None:
     """Test rotary frequencies vary with position."""
 
     head_dim = 64
@@ -23,7 +23,7 @@ def test_get_rotary_freqs_position_dependent():
     assert not torch.isinf(freqs).any()
 
 
-def test_apply_rotary_emb_actually_rotates():
+def test_apply_rotary_emb_actually_rotates() -> None:
     """Test rotary emeddings actually modify the input."""
 
     batch_size, num_heads, seq_len, head_dim = 2, 4, 8, 64
@@ -42,7 +42,7 @@ def test_apply_rotary_emb_actually_rotates():
     assert torch.allclose(x_norm, y_norm, rtol=0.01)
 
 
-def test_apply_rotary_emb_relative_position():
+def test_apply_rotary_emb_relative_position() -> None:
     """Test rotary embeddings encode relative position information."""
 
     batch_size, num_heads, seq_len, head_dim = 1, 1, 10, 64
@@ -71,7 +71,7 @@ def test_apply_rotary_emb_relative_position():
     assert (diagonal_scores > off_diagonal_max).float().mean() > 0.6
 
 
-def test_attention_forward_backward():
+def test_attention_forward_backward() -> None:
     """Test attention supports forward and backward."""
     hidden_size = 768
     num_heads = 12

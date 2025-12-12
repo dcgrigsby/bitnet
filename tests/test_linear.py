@@ -5,7 +5,7 @@ from bitnet.linear import BitLinear
 from bitnet.quant import activation_quant, weight_quant
 
 
-def test_bitlinear_forward_backward():
+def test_bitlinear_forward_backward() -> None:
     """Test BitLinear supports forward and backward passes."""
 
     layer = BitLinear(768, 512)
@@ -20,7 +20,7 @@ def test_bitlinear_forward_backward():
     assert layer.weight.grad.shape == layer.weight.shape
 
 
-def test_bitlinear_weight_quantization():
+def test_bitlinear_weight_quantization() -> None:
     """Test that weights are quantized to ternary values during forward pass"""
 
     layer = BitLinear(100, 50)
@@ -43,7 +43,7 @@ def test_bitlinear_weight_quantization():
     assert torch.allclose(layer.weight, original_weight)
 
 
-def test_bitlinear_activation_quantization():
+def test_bitlinear_activation_quantization() -> None:
     """Test that activations are quantized during forward pass."""
 
     layer = BitLinear(512, 256)
@@ -62,7 +62,7 @@ def test_bitlinear_activation_quantization():
     assert unique_quant <= 256  # int8 range
 
 
-def test_bitlinear_ste_gradient_bypass():
+def test_bitlinear_ste_gradient_bypass() -> None:
     """Test Straight-Through Estimator bypasses quantization in backward pass."""
 
     layer = BitLinear(256, 128)
@@ -85,7 +85,7 @@ def test_bitlinear_ste_gradient_bypass():
     assert layer.weight.grad.abs().max() > 0
     assert layer.weight.grad.abs().max() < 100
 
-def test_bitlinear_deterministic():
+def test_bitlinear_deterministic() -> None:
     """Test BitLinear produces deterministic output for same input."""
 
     layer = BitLinear(768, 512)
@@ -96,7 +96,7 @@ def test_bitlinear_deterministic():
 
     assert torch.allclose(y1, y2)
 
-def test_bitlinear_batch_independence():
+def test_bitlinear_batch_independence() -> None:
     """Test BitLinear processes each sample independently."""
     layer = BitLinear(256, 128)
     _ = layer.eval()  # Use eval mode for per-token quantization
@@ -110,7 +110,7 @@ def test_bitlinear_batch_independence():
 
     assert torch.allclose(y_batch, y_individual, atol=1e-5)
 
-def test_bitlinear_parameter_learning():
+def test_bitlinear_parameter_learning() -> None:
     """Test BitLinear weights actually update during training."""
 
     layer = BitLinear(256, 128)

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from bitnet.feedforward import FeedForward
 
 
-def test_feedforward_applies_normalization():
+def test_feedforward_applies_normalization() -> None:
     """Test FFN applies normalization before projections."""
     ffn = FeedForward(768, 3072)
     x = torch.randn(2, 10, 768) * 10  # Varying magnitude
@@ -20,7 +20,7 @@ def test_feedforward_applies_normalization():
 
     y = ffn(x)
 
-    handle.remove()
+    _ = handle.remove()
 
     # Verify normalization was applied
     assert len(normalized_input) > 0
@@ -31,7 +31,7 @@ def test_feedforward_applies_normalization():
     assert torch.allclose(rms, torch.ones_like(rms), atol=0.1)
 
 
-def test_feedfoward_swiglu_activation():
+def test_feedfoward_swiglu_activation() -> None:
     """Test FFN uses SwiGLU (squared ReLU gating)."""
 
     ffn = FeedForward(256, 512)
@@ -59,7 +59,7 @@ def test_feedfoward_swiglu_activation():
         )
 
 
-def test_feedforward_gating_modulates_output():
+def test_feedforward_gating_modulates_output() -> None:
     """Test that forward() properly applies gating to modulate output."""
 
     ffn = FeedForward(256, 512)
@@ -86,7 +86,7 @@ def test_feedforward_gating_modulates_output():
         )
 
 
-def test_feedforward_forward_backward():
+def test_feedforward_forward_backward() -> None:
     """Test FFN suppost forward and backward with proper gradient flow."""
 
     hidden_size = 768
@@ -109,7 +109,7 @@ def test_feedforward_forward_backward():
     assert ffn.down.weight.grad.abs().max() < 1000
 
 
-def test_feedforward_parameter_learning():
+def test_feedforward_parameter_learning() -> None:
     """Test FFN parameters update during training."""
     ffn = FeedForward(256, 512)
     optimizer = torch.optim.SGD(ffn.parameters(), lr=0.1)
@@ -130,7 +130,7 @@ def test_feedforward_parameter_learning():
     assert not torch.allclose(ffn.down.weight, initial_down)
 
 
-def test_feedforward_deterministic():
+def test_feedforward_deterministic() -> None:
     """Test FFN produces deterministic output for same input."""
     ffn = FeedForward(768, 3072)
     x = torch.randn(2, 10, 768)
@@ -141,7 +141,7 @@ def test_feedforward_deterministic():
     assert torch.allclose(y1, y2)
 
 
-def test_feedforward_batch_independence():
+def test_feedforward_batch_independence() -> None:
     """Test FFN processes each sample independently."""
     ffn = FeedForward(256, 512)
     x = torch.randn(4, 10, 256)
@@ -156,7 +156,7 @@ def test_feedforward_batch_independence():
     assert torch.allclose(y_batch, y_individual, atol=1e-5)
 
 
-def test_feedforward_expands_then_contracts():
+def test_feedforward_expands_then_contracts() -> None:
     """Test FFN expands to ffn_hidden_size then contracts back."""
     hidden_size = 768
     ffn_hidden_size = 3072
@@ -172,7 +172,7 @@ def test_feedforward_expands_then_contracts():
 
     handle = ffn.down.register_forward_hook(hook)
     y = ffn(x)
-    handle.remove()
+    _ = handle.remove()
 
     # Check intermediate size
     assert len(hidden_states) > 0

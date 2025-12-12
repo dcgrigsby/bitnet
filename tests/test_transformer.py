@@ -5,7 +5,7 @@ from bitnet.config import BitNetConfig
 from bitnet.transformer import BitNetModel, TransformerBlock
 
 
-def test_transformer_block_residual_connections():
+def test_transformer_block_residual_connections() -> None:
     """Test transformer block uses residual connections."""
 
     block = TransformerBlock(256, 4, 4, 512)
@@ -28,8 +28,8 @@ def test_transformer_block_residual_connections():
     ffn_handle = block.feedforward.register_forward_pre_hook(ffn_pre_hook)
 
     y = block(x)
-    handle.remove()
-    ffn_handle.remove()
+    _ = handle.remove()
+    _ = ffn_handle.remove()
 
     # Check attention residual: intermediate should equal x + attn_out
     attn_out = attn_outputs[0]
@@ -37,7 +37,7 @@ def test_transformer_block_residual_connections():
     assert torch.allclose(intermediate[0], expected_after_attn, atol=1e-6)
 
 
-def test_transformer_block_attention_then_ffn():
+def test_transformer_block_attention_then_ffn() -> None:
     """Test transformer block applies attention before feedforward."""
 
     block = TransformerBlock(256, 4, 4, 512)
@@ -57,14 +57,14 @@ def test_transformer_block_attention_then_ffn():
 
     y = block(x)
 
-    handle_attn.remove()
-    handle_ffn.remove()
+    _ = handle_attn.remove()
+    _ = handle_ffn.remove()
 
     # Verify execution order
     assert execution_order == ["attention", "feedforward"]
 
 
-def test_transformer_block_forward_backward():
+def test_transformer_block_forward_backward() -> None:
     """Test transformer block supports gradients."""
 
     hidden_size = 768
@@ -84,7 +84,7 @@ def test_transformer_block_forward_backward():
     assert not torch.isnan(y).any()
 
 
-def test_bitnet_model_applies_final_norm():
+def test_bitnet_model_applies_final_norm() -> None:
     """Test model applies final RMSNorm before output projection."""
 
     config = BitNetConfig(num_layers=2)
@@ -101,7 +101,7 @@ def test_bitnet_model_applies_final_norm():
     input_ids = torch.randint(0, config.vocab_size, (2, 10))
     logits = model(input_ids)
 
-    handle.remove()
+    _ = handle.remove()
 
     # Verify final norm was called
     assert len(norm_outputs) > 0
@@ -112,7 +112,7 @@ def test_bitnet_model_applies_final_norm():
     assert torch.allclose(rms, torch.ones_like(rms), atol=0.1)
 
 
-def test_bitnet_model_forward_backward():
+def test_bitnet_model_forward_backward() -> None:
     """Test BitNetModel supports training."""
 
     config = BitNetConfig()
@@ -134,7 +134,7 @@ def test_bitnet_model_forward_backward():
     assert model.lm_head.weight.grad is not None
 
 
-def test_bitnet_model_all_blocks_executed():
+def test_bitnet_model_all_blocks_executed() -> None:
     """Test that all transformer blocks are executed during forward pass."""
     config = BitNetConfig(num_layers=4)
     model = BitNetModel(config)
@@ -159,7 +159,7 @@ def test_bitnet_model_all_blocks_executed():
     assert blocks_executed == [0, 1, 2, 3]
 
 
-def test_bitnet_model_gradient_flow():
+def test_bitnet_model_gradient_flow() -> None:
     """Test gradients flow through entire model."""
     config = BitNetConfig(num_layers=3)
     model = BitNetModel(config)
@@ -182,11 +182,11 @@ def test_bitnet_model_gradient_flow():
             assert param.grad.abs().max() < 10000
 
 
-def test_bitnet_model_deterministic():
+def test_bitnet_model_deterministic() -> None:
     """Test model produces deterministic output for same input."""
     config = BitNetConfig(num_layers=2)
     model = BitNetModel(config)
-    model.eval()
+    _ = model.eval()
 
     input_ids = torch.randint(0, config.vocab_size, (2, 10))
 
