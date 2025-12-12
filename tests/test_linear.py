@@ -99,7 +99,7 @@ def test_bitlinear_deterministic():
 def test_bitlinear_batch_independence():
     """Test BitLinear processes each sample independently."""
     layer = BitLinear(256, 128)
-    layer.eval()  # Use eval mode for per-token quantization
+    _ = layer.eval()  # Use eval mode for per-token quantization
     
     x = torch.randn(4, 10, 256)
 

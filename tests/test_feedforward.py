@@ -13,7 +13,7 @@ def test_feedforward_applies_normalization():
     # Hook to capture normalized input
     normalized_input = []
 
-    def hook(module, input, output):
+    def hook(_module, _input, output):
         normalized_input.append(output)
 
     handle = ffn.norm.register_forward_hook(hook)
@@ -167,7 +167,7 @@ def test_feedforward_expands_then_contracts():
     # Hook to capture intermediate hidden state
     hidden_states = []
 
-    def hook(module, input, output):
+    def hook(_module, input, _output):
         hidden_states.append(input[0])
 
     handle = ffn.down.register_forward_hook(hook)

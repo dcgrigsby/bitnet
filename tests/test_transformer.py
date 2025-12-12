@@ -14,7 +14,7 @@ def test_transformer_block_residual_connections():
     # Capture attention output
     attn_outputs = []
 
-    def attn_hook(module, input, output):
+    def attn_hook(_module, _input, output):
         attn_outputs.append(output)
 
     handle = block.attention.register_forward_hook(attn_hook)
@@ -46,10 +46,10 @@ def test_transformer_block_attention_then_ffn():
     # Hooks to track execution order
     execution_order = []
 
-    def attn_hook(module, input, output):
+    def attn_hook(_module, _input, _output):
         execution_order.append("attention")
 
-    def ffn_hook(module, input, output):
+    def ffn_hook(_module, _input, _output):
         execution_order.append("feedforward")
 
     handle_attn = block.attention.register_forward_hook(attn_hook)
@@ -93,7 +93,7 @@ def test_bitnet_model_applies_final_norm():
     # Hook to verify final norm is applied
     norm_outputs = []
 
-    def norm_hook(module, input, output):
+    def norm_hook(_module, _input, output):
         norm_outputs.append(output)
 
     handle = model.final_norm.register_forward_hook(norm_hook)
@@ -145,7 +145,7 @@ def test_bitnet_model_all_blocks_executed():
     for i, block in enumerate(model.blocks):
 
         def make_hook(idx):
-            def hook(module, input, output):
+            def hook(_module, _input, _output):
                 blocks_executed.append(idx)
 
             return hook
