@@ -20,6 +20,7 @@ class TransformerBlock(nn.Module):
         ffn_hidden_size: int,
         norm_eps: float = 1e-5,
         rope_theta: float = 10000.0,
+        disable_quant: bool = False,
     ) -> None:
         super().__init__()
 
@@ -29,9 +30,12 @@ class TransformerBlock(nn.Module):
             num_kv_heads,
             norm_eps=norm_eps,
             rope_theta=rope_theta,
+            disable_quant=disable_quant,
         )
 
-        self.feedforward: FeedForward = FeedForward(hidden_size, ffn_hidden_size, norm_eps=norm_eps)
+        self.feedforward: FeedForward = FeedForward(
+            hidden_size, ffn_hidden_size, norm_eps=norm_eps, disable_quant=disable_quant
+        )
 
     @override
     def forward(self, x: torch.Tensor, attn_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
@@ -57,11 +61,17 @@ class TransformerBlock(nn.Module):
 
 
 class BitNetModel(nn.Module):
-    """BitNet b1.58 model"""
+    """BitNet b1.58 model
 
-    def __init__(self, config: Any) -> None:
+    Args:
+        config: BitNetConfig
+        disable_quant: If True, disable quantization for debugging
+    """
+
+    def __init__(self, config: Any, disable_quant: bool = False) -> None:
         super().__init__()
         self.config: Any = config
+        self.disable_quant: bool = disable_quant
 
         # Token embeddings
         self.token_embeddings: nn.Embedding = nn.Embedding(config.vocab_size, config.hidden_size)
@@ -74,6 +84,7 @@ class BitNetModel(nn.Module):
                     config.num_kv_heads,
                     config.ffn_hidden_size,
                     norm_eps=config.norm_eps,
+                    disable_quant=disable_quant,
                 )
                 for _ in range(config.num_layers)
             ]
