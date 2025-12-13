@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from transformers import LlamaTokenizer
+# from transformers import LlamaTokenizer
+from transformers import GPT2Tokenizer
 
 from bitnet.config import BitNetConfig
 from bitnet.train import (
@@ -14,10 +15,11 @@ from bitnet.transformer import BitNetModel
 
 
 def main():
-    """Simple training example with LLaMA 2 tokenizer and two-stage schedulers."""
+    """Simple training example with GPT-2 tokenizer and two-stage schedulers."""
 
     # Load tokenizer
-    tokenizer = LlamaTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
+    # tokenizer = LlamaTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 

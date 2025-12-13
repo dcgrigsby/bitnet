@@ -5,7 +5,8 @@ from dataclasses import dataclass
 class BitNetConfig:
     """Configuration for Bitnet b1.58 model."""
 
-    vocab_size: int = 32000  # matches LLaMA tokenizer
+    # vocab_size: int = 32000  # matches LLaMA tokenizer
+    vocab_size: int = 50257  # matches GPT-2 tokenizer
 
     hidden_size: int = 768  # dimensions for each token
 
