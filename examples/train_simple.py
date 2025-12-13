@@ -35,7 +35,7 @@ def main():
         num_heads=3,
         num_kv_heads=3,
         ffn_hidden_size=384,
-        stage2_weight_decay=0.01,  # Reduced from 0.0 to prevent mode collapse
+        stage2_weight_decay=0.05,  # Reduced from 0.0 to prevent mode collapse
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -67,8 +67,8 @@ def main():
 
     # Training loop with two-stage schedulers
     print(f"Training for {num_steps} steps...")
-    print(f"  Stage 1: steps 0-{num_steps // 2} (higher LR, WD=0.1)")
-    print(f"  Stage 2: steps {num_steps // 2 + 1}-{num_steps} (lower LR, WD=0.0)")
+    print(f"  Stage 1: steps 0-{num_steps // 2} (higher LR, WD={config.weight_decay})")
+    print(f"  Stage 2: steps {num_steps // 2 + 1}-{num_steps} (lower LR, WD={config.stage2_weight_decay})")
     print()
 
     lr_scheduler = TwoStageLRScheduler(optimizer, config, num_steps)
