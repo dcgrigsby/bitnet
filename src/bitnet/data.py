@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import Any, Iterator, cast
 
 import torch
 from datasets import load_dataset
@@ -17,6 +17,13 @@ class WikiTextDataLoader:
         num_steps: Number of batches to generate (if None, iterate through full dataset)
         split: Which split to use ('train', 'validation', 'test')
     """
+
+    tokenizer: PreTrainedTokenizer
+    batch_size: int
+    seq_len: int
+    num_steps: int | None
+    split: str
+    dataset: Any
 
     def __init__(
         self,
@@ -39,20 +46,20 @@ class WikiTextDataLoader:
         """Yield batches of tokenized sequences."""
 
         step_count = 0
-        buffer = []
+        buffer: list[int] = []
 
         for sample in self.dataset:
-            text = sample["text"].strip()
+            text: str = sample["text"].strip()
             if not text:
                 continue
 
             # Tokenize
-            tokens = self.tokenizer.encode(text)
+            tokens: list[int] = self.tokenizer.encode(text)
             buffer.extend(tokens)
 
             # Emit batches when buffer is large enough
             while len(buffer) >= self.batch_size * self.seq_len:
-                batch_tokens = buffer[: self.batch_size * self.seq_len]
+                batch_tokens: list[int] = buffer[: self.batch_size * self.seq_len]
                 buffer = buffer[self.batch_size * self.seq_len :]
 
                 # Reshape into batch
@@ -66,12 +73,13 @@ class WikiTextDataLoader:
         # Emit final partial batch if we have steps remaining
         if self.num_steps is None or step_count < self.num_steps:
             if len(buffer) >= self.seq_len:
-                remaining_tokens = buffer[: self.batch_size * self.seq_len]
+                remaining_tokens: list[int] = buffer[: self.batch_size * self.seq_len]
                 if len(remaining_tokens) > 0:
                     # Pad if needed
                     if len(remaining_tokens) < self.batch_size * self.seq_len:
                         pad_len = self.batch_size * self.seq_len - len(remaining_tokens)
-                        remaining_tokens.extend([self.tokenizer.pad_token_id] * pad_len)
+                        pad_token = cast(int, self.tokenizer.pad_token_id)
+                        remaining_tokens.extend([pad_token] * pad_len)
 
                     batch = torch.tensor(remaining_tokens).reshape(self.batch_size, self.seq_len)
                     yield batch

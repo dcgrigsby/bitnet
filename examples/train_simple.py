@@ -1,9 +1,10 @@
 import sys
+from typing import Any, cast
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from transformers import GPT2Tokenizer
+from transformers import GPT2Tokenizer, PreTrainedTokenizer
 
 from bitnet.config import BitNetConfig
 from bitnet.data import WikiTextDataLoader
@@ -22,7 +23,7 @@ def main():
     num_steps = int(sys.argv[1]) if len(sys.argv) > 1 else 48
 
     # Load tokenizer
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    tokenizer = cast(PreTrainedTokenizer, GPT2Tokenizer.from_pretrained("gpt2"))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -50,7 +51,7 @@ def main():
         weight_decay=config.weight_decay,
         betas=(config.adam_beta1, config.adam_beta2),
     )
-    loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
+    loss_fn = nn.CrossEntropyLoss(ignore_index=cast(int, tokenizer.pad_token_id))
 
     # Create dataloader
     batch_size = 4
@@ -89,8 +90,8 @@ def main():
 
         step += 1
         if step % 16 == 0:
-            current_lr = optimizer.param_groups[0]["lr"]
-            current_wd = optimizer.param_groups[0]["weight_decay"]
+            current_lr = cast(float, optimizer.param_groups[0]["lr"])
+            current_wd = cast(float, optimizer.param_groups[0]["weight_decay"])
             stage = "Stage 2" if step > num_steps // 2 else "Stage 1"
             print(
                 f"Step {step}/{num_steps} ({stage}): Loss = {loss:.4f}, LR = {current_lr:.6f}, WD = {current_wd:.1f}"
@@ -107,10 +108,10 @@ def main():
 
     with torch.no_grad():
         for test_input in test_sentences:
-            input_ids = tokenizer.encode(test_input, return_tensors="pt").to(device)
+            input_ids = cast(torch.Tensor, tokenizer.encode(test_input, return_tensors="pt")).to(device)
             logits = model(input_ids)
             predictions = torch.argmax(logits, dim=-1)
-            predicted_text = tokenizer.decode(predictions[0], skip_special_tokens=True)
+            predicted_text = cast(str, tokenizer.decode(predictions[0], skip_special_tokens=True))
             print(f"  Input:  '{test_input}' -> '{predicted_text}'")
 
 

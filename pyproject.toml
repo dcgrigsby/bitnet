@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=1.24.0,<2",
     "transformers>=4.57.3,<5",
     "sentencepiece>=0.1.99,<1",
+    "datasets>=2.14.0,<3",
 ]
 dynamic = ["version"]
 
