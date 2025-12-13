@@ -30,11 +30,11 @@ def main():
     # Create model
     config = BitNetConfig(
         vocab_size=tokenizer.vocab_size,
-        hidden_size=256,
-        num_layers=4,
-        num_heads=4,
-        num_kv_heads=4,
-        ffn_hidden_size=512,
+        hidden_size=192,
+        num_layers=3,
+        num_heads=3,
+        num_kv_heads=3,
+        ffn_hidden_size=384,
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
