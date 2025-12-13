@@ -77,31 +77,19 @@ class TwoStageWDScheduler:
     """Two-stage weight decay scheduler for BitNet b1.58
 
     Based on "The Era of 1-bit LLMs: Training Tips, Code and FAQ":
-    - Stage 1 (0-50%): WD = stage1_wd (regularization)
-    - Stage 2 (50-100%): WD = stage2_wd (convergence)
+    - Stage 1 (0-50%): WD = 0.1 (regularization)
+    - Stage 2 (50-100%): WD = 0.0 (convergence, prevent frequent updates)
 
     In 1-bit training, latent weight magnitude acts as confidence score.
-    Stage 2 WD can be reduced instead of zeroed to prevent mode collapse on small models.
-
-    Args:
-        optimizer: PyTorch optimizer
-        total_steps: Total optimizer steps for entire training run
-        stage1_wd: Weight decay for stage 1 (default 0.1)
-        stage2_wd: Weight decay for stage 2 (default 0.0)
+    Large weight decay causes weights to change frequently in Stage 2.
     """
 
-    def __init__(
-        self,
-        optimizer: optim.Optimizer,
-        total_steps: int,
-        stage1_wd: float = 0.1,
-        stage2_wd: float = 0.0,
-    ) -> None:
+    def __init__(self, optimizer: optim.Optimizer, total_steps: int) -> None:
         self.optimizer: optim.Optimizer = optimizer
         self.total_steps: int = total_steps
         self.current_step: int = 0
-        self.stage1_wd: float = stage1_wd
-        self.stage2_wd: float = stage2_wd
+        self.stage1_wd: float = 0.1
+        self.stage2_wd: float = 0.0
         self.stage1_steps: int = total_steps // 2
 
     def step(self) -> None:

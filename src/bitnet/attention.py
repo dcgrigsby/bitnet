@@ -70,7 +70,6 @@ class Attention(nn.Module):
         num_kv_heads: int,
         norm_eps: float = 1e-5,
         rope_theta: float = 10000.0,
-        disable_quant: bool = False,
     ) -> None:
         super().__init__()
         self.hidden_size: int = hidden_size
@@ -84,11 +83,11 @@ class Attention(nn.Module):
 
         # Query, Key, Value projections (combined)
         self.qkv_proj: BitLinear = BitLinear(
-            hidden_size, (num_heads + 2 * num_kv_heads) * self.head_dim, disable_quant=disable_quant
+            hidden_size, (num_heads + 2 * num_kv_heads) * self.head_dim
         )
 
         # Output projection
-        self.out_proj: BitLinear = BitLinear(num_heads * self.head_dim, hidden_size, disable_quant=disable_quant)
+        self.out_proj: BitLinear = BitLinear(num_heads * self.head_dim, hidden_size)
 
         # Pre-attention normalization
         self.norm: RMSNorm = RMSNorm(hidden_size, eps=norm_eps)

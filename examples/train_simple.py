@@ -30,17 +30,15 @@ def main():
     # Create model
     config = BitNetConfig(
         vocab_size=tokenizer.vocab_size,
-        hidden_size=192,
-        num_layers=3,
-        num_heads=3,
-        num_kv_heads=3,
-        ffn_hidden_size=384,
-        stage2_weight_decay=0.05,  # Reduced from 0.0 to prevent mode collapse
+        hidden_size=256,
+        num_layers=4,
+        num_heads=4,
+        num_kv_heads=4,
+        ffn_hidden_size=512,
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # Test without quantization to diagnose if quantization is the issue
-    model = BitNetModel(config, disable_quant=True).to(device)
+    model = BitNetModel(config).to(device)
 
     print(
         f"Model: {sum(p.numel() for p in model.parameters()):,} parameters on {device}"
@@ -68,23 +66,15 @@ def main():
 
     # Training loop with two-stage schedulers
     print(f"Training for {num_steps} steps...")
-    print(f"  Stage 1: steps 0-{num_steps // 2} (higher LR, WD={config.weight_decay})")
-    print(f"  Stage 2: steps {num_steps // 2 + 1}-{num_steps} (lower LR, WD={config.stage2_weight_decay})")
+    print(f"  Stage 1: steps 0-{num_steps // 2} (higher LR, WD=0.1)")
+    print(f"  Stage 2: steps {num_steps // 2 + 1}-{num_steps} (lower LR, WD=0.0)")
     print()
 
     lr_scheduler = TwoStageLRScheduler(optimizer, config, num_steps)
-    wd_scheduler = TwoStageWDScheduler(
-        optimizer,
-        num_steps,
-        stage1_wd=config.weight_decay,
-        stage2_wd=config.stage2_weight_decay,
-    )
+    wd_scheduler = TwoStageWDScheduler(optimizer, num_steps)
 
     _ = model.train()
     step = 0
-
-    # Diagnostic: capture initial weights
-    initial_weights = {name: param.clone().detach() for name, param in model.named_parameters()}
 
     for batch in dataloader:
         batch = batch.to(device)
@@ -107,17 +97,6 @@ def main():
                 f"Step {step}/{num_steps} ({stage}): Loss = {loss:.4f}, LR = {current_lr:.6f}, WD = {current_wd:.1f}"
             )
 
-    # Diagnostic: check if weights changed
-    print("\nWeight change diagnostic:")
-    total_weight_change = 0.0
-    for name, param in model.named_parameters():
-        if name in initial_weights:
-            change = torch.abs(param - initial_weights[name]).mean().item()
-            total_weight_change += change
-            if change < 1e-7:
-                print(f"  WARNING: {name} barely changed ({change:.2e})")
-    print(f"  Average weight change: {total_weight_change / len(initial_weights):.6f}")
-
     # Test inference
     print("\nInference examples:")
     _ = model.eval()
@@ -131,19 +110,9 @@ def main():
         for test_input in test_sentences:
             input_ids = cast(torch.Tensor, tokenizer.encode(test_input, return_tensors="pt")).to(device)
             logits = model(input_ids)
-
-            # Diagnostic: show logit statistics
-            last_logits = logits[0, -1, :]  # Last token's logits
-            top_k_values, top_k_indices = torch.topk(last_logits, k=5)
-            top_k_tokens = [tokenizer.decode([idx.item()]) for idx in top_k_indices]
-            entropy = -torch.sum(torch.softmax(last_logits, dim=0) * torch.log_softmax(last_logits, dim=0))
-
             predictions = torch.argmax(logits, dim=-1)
             predicted_text = cast(str, tokenizer.decode(predictions[0], skip_special_tokens=True))
-            print(f"  Input:  '{test_input}'")
-            print(f"    Output: '{predicted_text}'")
-            print(f"    Top 5 next tokens: {list(zip(top_k_tokens, [f'{v:.2f}' for v in top_k_values]))}")
-            print(f"    Entropy: {entropy:.4f}")
+            print(f"  Input:  '{test_input}' -> '{predicted_text}'")
 
 
 if __name__ == "__main__":

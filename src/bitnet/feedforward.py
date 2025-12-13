@@ -10,23 +10,17 @@ from bitnet.linear import BitLinear
 class FeedForward(nn.Module):
     """Feed-forward layer with SwiGLU activation"""
 
-    def __init__(
-        self,
-        hidden_size: int,
-        ffn_hidden_size: int,
-        norm_eps: float = 1e-5,
-        disable_quant: bool = False,
-    ) -> None:
+    def __init__(self, hidden_size: int, ffn_hidden_size: int, norm_eps: float = 1e-5) -> None:
         super().__init__()
 
         self.hidden_size: int = hidden_size
         self.ffn_hidden_size: int = ffn_hidden_size
 
         # SwiGLU gate and up projection (combined)
-        self.gate_up: BitLinear = BitLinear(hidden_size, 2 * ffn_hidden_size, disable_quant=disable_quant)
+        self.gate_up: BitLinear = BitLinear(hidden_size, 2 * ffn_hidden_size)
 
         # Down projection
-        self.down: BitLinear = BitLinear(ffn_hidden_size, hidden_size, disable_quant=disable_quant)
+        self.down: BitLinear = BitLinear(ffn_hidden_size, hidden_size)
 
         # Pre-FFN normalization
         self.norm: RMSNorm = RMSNorm(hidden_size, eps=norm_eps)
