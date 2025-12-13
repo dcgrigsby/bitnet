@@ -3,7 +3,7 @@ from typing import Any, Optional
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 
 from bitnet.config import BitNetConfig
 from bitnet.transformer import BitNetModel
@@ -154,26 +154,6 @@ def train_step(
         wd_scheduler.step()
 
     return loss.item()
-
-
-def create_dummy_dataloader(
-    config: BitNetConfig, num_batches: int = 4, batch_size: int = 2, seq_len: int = 10
-) -> DataLoader[Any]:
-    """Create a dummy dataloader for testing.
-
-    Args:
-        config: Model config
-        num_batches: Number of batches
-        batch_size: Batch size
-        seq_len: Sequence length
-
-    Returns:
-        DataLoader with dummy data
-    """
-    data = torch.randint(0, config.vocab_size, (num_batches * batch_size, seq_len))
-    dataset = TensorDataset(data)
-    dataloader = DataLoader(dataset, batch_size=batch_size)
-    return dataloader
 
 
 def train_epoch(

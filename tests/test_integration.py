@@ -7,11 +7,11 @@ from bitnet.config import BitNetConfig
 from bitnet.train import (
     TwoStageLRScheduler,
     TwoStageWDScheduler,
-    create_dummy_dataloader,
     train_epoch,
     train_step,
 )
 from bitnet.transformer import BitNetModel
+from tests.fixtures import create_dummy_dataloader
 
 
 def test_full_training_pipeline():

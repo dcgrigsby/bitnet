@@ -1,25 +1,27 @@
+import sys
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-# from transformers import LlamaTokenizer
 from transformers import GPT2Tokenizer
 
 from bitnet.config import BitNetConfig
+from bitnet.data import WikiTextDataLoader
 from bitnet.train import (
     TwoStageLRScheduler,
     TwoStageWDScheduler,
-    create_dummy_dataloader,
-    train_epoch,
+    train_step,
 )
 from bitnet.transformer import BitNetModel
 
 
 def main():
-    # """Simple training example with LLaMA 2 tokenizer and two-stage schedulers."""
-    """Simple training example with GPT-2 tokenizer and two-stage schedulers."""
+    """Simple training example with WikiText-2 and two-stage schedulers."""
+
+    # Parse command line arguments
+    num_steps = int(sys.argv[1]) if len(sys.argv) > 1 else 48
 
     # Load tokenizer
-    # tokenizer = LlamaTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -36,7 +38,7 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = BitNetModel(config).to(device)
-    
+
     print(
         f"Model: {sum(p.numel() for p in model.parameters()):,} parameters on {device}"
     )
@@ -50,51 +52,49 @@ def main():
     )
     loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
 
-    # Create dummy data
-    num_epochs = 3
-    num_batches_per_epoch = 16
+    # Create dataloader
     batch_size = 4
     seq_len = 32
-    total_steps = num_batches_per_epoch * num_epochs
 
-    dataloader = create_dummy_dataloader(
-        config,
-        num_batches=num_batches_per_epoch,
+    dataloader = WikiTextDataLoader(
+        tokenizer,
         batch_size=batch_size,
         seq_len=seq_len,
+        num_steps=num_steps,
     )
 
     # Training loop with two-stage schedulers
-    print(f"Training for {num_epochs} epochs ({total_steps} steps)...")
-    print(f"  Stage 1: steps 0-{total_steps // 2} (higher LR, WD=0.1)")
-    print(f"  Stage 2: steps {total_steps // 2 + 1}-{total_steps} (lower LR, WD=0.0)")
+    print(f"Training for {num_steps} steps...")
+    print(f"  Stage 1: steps 0-{num_steps // 2} (higher LR, WD=0.1)")
+    print(f"  Stage 2: steps {num_steps // 2 + 1}-{num_steps} (lower LR, WD=0.0)")
     print()
 
-    step_count = 0
-    for epoch in range(num_epochs):
-        lr_scheduler = TwoStageLRScheduler(optimizer, config, total_steps)
-        wd_scheduler = TwoStageWDScheduler(optimizer, total_steps)
+    lr_scheduler = TwoStageLRScheduler(optimizer, config, num_steps)
+    wd_scheduler = TwoStageWDScheduler(optimizer, num_steps)
 
-        for _ in range(step_count):
-            lr_scheduler.step()
-            wd_scheduler.step()
+    _ = model.train()
+    step = 0
 
-        loss = train_epoch(
+    for batch in dataloader:
+        batch = batch.to(device)
+
+        loss = train_step(
             model,
-            dataloader,
+            batch,
             optimizer,
             loss_fn,
             lr_scheduler=lr_scheduler,
             wd_scheduler=wd_scheduler,
         )
 
-        step_count += num_batches_per_epoch
-        current_lr = optimizer.param_groups[0]["lr"]
-        current_wd = optimizer.param_groups[0]["weight_decay"]
-        stage = "Stage 2" if step_count > total_steps // 2 else "Stage 1"
-        print(
-            f"Epoch {epoch + 1}/{num_epochs} ({stage}): Loss = {loss:.4f}, LR = {current_lr:.6f}, WD = {current_wd:.1f}"
-        )
+        step += 1
+        if step % 16 == 0:
+            current_lr = optimizer.param_groups[0]["lr"]
+            current_wd = optimizer.param_groups[0]["weight_decay"]
+            stage = "Stage 2" if step > num_steps // 2 else "Stage 1"
+            print(
+                f"Step {step}/{num_steps} ({stage}): Loss = {loss:.4f}, LR = {current_lr:.6f}, WD = {current_wd:.1f}"
+            )
 
     # Test inference
     print("\nInference examples:")

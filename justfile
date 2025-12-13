@@ -4,5 +4,5 @@ default:
 test *args:
     uv run pytest {{ args }}
 
-train-simple:
-    uv run python examples/train_simple.py
+train-simple steps='48':
+    uv run python examples/train_simple.py {{steps}}
