@@ -15,6 +15,7 @@ from bitnet.transformer import BitNetModel
 
 
 def main():
+    # """Simple training example with LLaMA 2 tokenizer and two-stage schedulers."""
     """Simple training example with GPT-2 tokenizer and two-stage schedulers."""
 
     # Load tokenizer
