@@ -24,7 +24,9 @@ class BitNetConfig:
 
     learning_rate: float = 1.5e-3  # BitNet requires 5-7x higher LR (arXiv:2402.17764)
 
-    weight_decay: float = 0.1  # first stage only
+    weight_decay: float = 0.1  # Stage 1 weight decay
+
+    stage2_weight_decay: float = 0.0  # Stage 2 weight decay
 
     warmup_steps: int = 375
 

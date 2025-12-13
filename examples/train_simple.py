@@ -35,6 +35,7 @@ def main():
         num_heads=3,
         num_kv_heads=3,
         ffn_hidden_size=384,
+        stage2_weight_decay=0.01,  # Reduced from 0.0 to prevent mode collapse
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -71,7 +72,12 @@ def main():
     print()
 
     lr_scheduler = TwoStageLRScheduler(optimizer, config, num_steps)
-    wd_scheduler = TwoStageWDScheduler(optimizer, num_steps)
+    wd_scheduler = TwoStageWDScheduler(
+        optimizer,
+        num_steps,
+        stage1_wd=config.weight_decay,
+        stage2_wd=config.stage2_weight_decay,
+    )
 
     _ = model.train()
     step = 0
