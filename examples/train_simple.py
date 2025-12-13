@@ -1,5 +1,3 @@
-"""Simple example training script for BitNet b1.58 with two-stage schedulers"""
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -17,6 +15,7 @@ from bitnet.transformer import BitNetModel
 
 def main():
     """Simple training example with LLaMA 2 tokenizer and two-stage schedulers."""
+
     # Load tokenizer
     tokenizer = LlamaTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf")
     if tokenizer.pad_token is None:
@@ -31,9 +30,13 @@ def main():
         num_kv_heads=4,
         ffn_hidden_size=512,
     )
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = BitNetModel(config).to(device)
-    print(f"Model: {sum(p.numel() for p in model.parameters()):,} parameters on {device}")
+    
+    print(
+        f"Model: {sum(p.numel() for p in model.parameters()):,} parameters on {device}"
+    )
 
     # Setup training
     optimizer = optim.Adam(
@@ -58,8 +61,12 @@ def main():
         seq_len=seq_len,
     )
 
-    # Training loop
+    # Training loop with two-stage schedulers
     print(f"Training for {num_epochs} epochs ({total_steps} steps)...")
+    print(f"  Stage 1: steps 0-{total_steps // 2} (higher LR, WD=0.1)")
+    print(f"  Stage 2: steps {total_steps // 2 + 1}-{total_steps} (lower LR, WD=0.0)")
+    print()
+
     step_count = 0
     for epoch in range(num_epochs):
         lr_scheduler = TwoStageLRScheduler(optimizer, config, total_steps)
@@ -80,11 +87,15 @@ def main():
 
         step_count += num_batches_per_epoch
         current_lr = optimizer.param_groups[0]["lr"]
-        print(f"Epoch {epoch + 1}/{num_epochs}: Loss = {loss:.4f}, LR = {current_lr:.6f}")
+        current_wd = optimizer.param_groups[0]["weight_decay"]
+        stage = "Stage 2" if step_count > total_steps // 2 else "Stage 1"
+        print(
+            f"Epoch {epoch + 1}/{num_epochs} ({stage}): Loss = {loss:.4f}, LR = {current_lr:.6f}, WD = {current_wd:.1f}"
+        )
 
     # Test inference
     print("\nInference examples:")
-    model.eval()
+    _ = model.eval()
     test_sentences = [
         "The quick brown fox",
         "Machine learning is",
