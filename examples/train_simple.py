@@ -67,7 +67,7 @@ def main():
     # Training loop with two-stage schedulers
     print(f"Training for {num_steps} steps...")
     print(f"  Stage 1: steps 0-{num_steps // 2} (higher LR, WD=0.1)")
-    print(f"  Stage 2: steps {num_steps // 2 + 1}-{num_steps} (lower LR, WD=0.0)")
+    print(f"  Stage 2: steps {num_steps // 2 + 1}-{num_steps} (lower LR, WD=0.05)")
     print()
 
     lr_scheduler = TwoStageLRScheduler(optimizer, config, num_steps)
@@ -94,11 +94,48 @@ def main():
             current_wd = cast(float, optimizer.param_groups[0]["weight_decay"])
             stage = "Stage 2" if step > num_steps // 2 else "Stage 1"
             print(
-                f"Step {step}/{num_steps} ({stage}): Loss = {loss:.4f}, LR = {current_lr:.6f}, WD = {current_wd:.1f}"
+                f"Step {step}/{num_steps} ({stage}): Loss = {loss:.4f}, LR = {current_lr:.6f}, WD = {current_wd:.2f}"
             )
 
-    # Test inference
-    print("\nInference examples:")
+    # Test inference with better decoding
+    def sample_with_temperature_and_penalties(
+        logits: torch.Tensor,
+        temperature: float = 1.0,
+        top_p: float = 0.95,
+        repetition_penalty: float = 1.0,
+        recent_tokens: list[int] | None = None,
+        ngram_size: int = 2,
+    ) -> int:
+        """Sample from logits with temperature, top_p, and repetition penalty."""
+        # Apply repetition penalty to recent tokens
+        if recent_tokens is None:
+            recent_tokens = []
+        if repetition_penalty > 1.0 and recent_tokens:
+            for token_id in set(recent_tokens[-ngram_size:]):
+                logits[0, -1, token_id] /= repetition_penalty
+
+        # Apply temperature
+        if temperature != 1.0:
+            logits = logits / temperature
+
+        # Softmax to get probabilities
+        probs = torch.softmax(logits[0, -1, :], dim=-1)
+
+        # Top-p (nucleus) sampling
+        if top_p < 1.0:
+            sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+            cumsum_probs = torch.cumsum(sorted_probs, dim=-1)
+            mask = cumsum_probs <= top_p
+            mask[0] = True  # Always include top token
+            sorted_probs = sorted_probs[mask]
+            sorted_indices = sorted_indices[mask]
+            probs_normalized = sorted_probs / sorted_probs.sum()
+            idx = torch.multinomial(probs_normalized, 1)
+            return int(sorted_indices[idx].item())
+        else:
+            return int(torch.multinomial(probs, 1).item())
+
+    print("\nInference examples (greedy):")
     _ = model.eval()
     test_sentences = [
         "The quick brown fox",
@@ -112,6 +149,23 @@ def main():
             logits = model(input_ids)
             predictions = torch.argmax(logits, dim=-1)
             predicted_text = cast(str, tokenizer.decode(predictions[0], skip_special_tokens=True))
+            print(f"  Input:  '{test_input}' -> '{predicted_text}'")
+
+    # Try with temperature and top_p
+    print("\nInference examples (temperature=0.9, top_p=0.95, repetition_penalty=1.2):")
+    with torch.no_grad():
+        for test_input in test_sentences:
+            input_ids = cast(torch.Tensor, tokenizer.encode(test_input, return_tensors="pt")).to(device)
+            logits = model(input_ids)
+            token = sample_with_temperature_and_penalties(
+                logits,
+                temperature=0.9,
+                top_p=0.95,
+                repetition_penalty=1.2,
+                recent_tokens=[],
+                ngram_size=2,
+            )
+            predicted_text = cast(str, tokenizer.decode([token], skip_special_tokens=True))
             print(f"  Input:  '{test_input}' -> '{predicted_text}'")
 
 

@@ -78,10 +78,11 @@ class TwoStageWDScheduler:
 
     Based on "The Era of 1-bit LLMs: Training Tips, Code and FAQ":
     - Stage 1 (0-50%): WD = 0.1 (regularization)
-    - Stage 2 (50-100%): WD = 0.0 (convergence, prevent frequent updates)
+    - Stage 2 (50-100%): WD = 0.05 (moderate regularization to prevent mode collapse)
 
     In 1-bit training, latent weight magnitude acts as confidence score.
-    Large weight decay causes weights to change frequently in Stage 2.
+    Setting WD=0.0 in Stage 2 can cause mode collapse on small models/datasets.
+    We use WD=0.05 as a middle ground for stability.
     """
 
     def __init__(self, optimizer: optim.Optimizer, total_steps: int) -> None:
@@ -89,7 +90,7 @@ class TwoStageWDScheduler:
         self.total_steps: int = total_steps
         self.current_step: int = 0
         self.stage1_wd: float = 0.1
-        self.stage2_wd: float = 0.0
+        self.stage2_wd: float = 0.05
         self.stage1_steps: int = total_steps // 2
 
     def step(self) -> None:
