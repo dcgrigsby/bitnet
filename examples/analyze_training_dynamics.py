@@ -127,6 +127,9 @@ def compare_token_frequency(model, tokenizer, text_sample):
 
 
 if __name__ == "__main__":
+    # Parse arguments
+    num_steps = int(sys.argv[1]) if len(sys.argv) > 1 else 20
+
     # Load tokenizer and config
     tokenizer = cast(GPT2Tokenizer, GPT2Tokenizer.from_pretrained("gpt2"))
     if tokenizer.pad_token is None:
@@ -159,11 +162,10 @@ if __name__ == "__main__":
         tokenizer,
         batch_size=4,
         seq_len=32,
-        num_steps=20,
+        num_steps=num_steps,
     )
 
     model.train()
-    num_steps = 20
 
     lr_scheduler = TwoStageLRScheduler(optimizer, config, num_steps)
     wd_scheduler = TwoStageWDScheduler(optimizer, num_steps)
