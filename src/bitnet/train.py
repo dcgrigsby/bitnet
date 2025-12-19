@@ -76,13 +76,13 @@ class TwoStageLRScheduler:
 class TwoStageWDScheduler:
     """Two-stage weight decay scheduler for BitNet b1.58
 
-    Based on "The Era of 1-bit LLMs: Training Tips, Code and FAQ":
+    Based on "The Era of 1-bit LLMs: Training Tips, Code and FAQ" (Table 2):
     - Stage 1 (0-50%): WD = 0.1 (regularization)
-    - Stage 2 (50-100%): WD = 0.05 (moderate regularization to prevent mode collapse)
+    - Stage 2 (50-100%): WD = 0.0 (disabled per Microsoft's finding)
 
-    In 1-bit training, latent weight magnitude acts as confidence score.
-    Setting WD=0.0 in Stage 2 can cause mode collapse on small models/datasets.
-    We use WD=0.05 as a middle ground for stability.
+    From Microsoft: "In the second stage, weight decay was disabled."
+    "the magnitude of the latent weights can be interpreted as a confidence score.
+    Setting WD=0.0 allows the model to converge rather than update frequently."
     """
 
     def __init__(self, optimizer: optim.Optimizer, total_steps: int) -> None:
@@ -90,7 +90,7 @@ class TwoStageWDScheduler:
         self.total_steps: int = total_steps
         self.current_step: int = 0
         self.stage1_wd: float = 0.1
-        self.stage2_wd: float = 0.05
+        self.stage2_wd: float = 0.0
         self.stage1_steps: int = total_steps // 2
 
     def step(self) -> None:
