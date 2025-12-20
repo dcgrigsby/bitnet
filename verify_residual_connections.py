@@ -16,9 +16,23 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 src_dir = os.path.join(script_dir, 'src')
 sys.path.insert(0, src_dir)
 
-import torch
-from bitnet.transformer import TransformerBlock, BitNetModel
-from bitnet.config import BitNetConfig
+try:
+    import torch
+    from bitnet.transformer import TransformerBlock, BitNetModel
+    from bitnet.config import BitNetConfig
+except ImportError as e:
+    print("ERROR: Required dependencies not installed")
+    print()
+    print("This script requires PyTorch and the bitnet package.")
+    print("Please install dependencies:")
+    print("  pip install torch")
+    print("  pip install -e .")
+    print()
+    print(f"Import error: {e}")
+    sys.exit(1)
+
+# Maximum gradient magnitude threshold for validation
+MAX_GRADIENT_THRESHOLD = 10000
 
 
 def test_residual_connections_basic():
@@ -180,7 +194,7 @@ def test_full_model_gradient_flow():
             if torch.isinf(param.grad).any():
                 print(f"✗ Inf detected in gradients: {name}")
                 all_grads_valid = False
-            if param.grad.abs().max() > 10000:
+            if param.grad.abs().max() > MAX_GRADIENT_THRESHOLD:
                 print(f"⚠ Large gradient detected: {name} (max: {param.grad.abs().max():.2f})")
     
     if all(grad_checks.values()) and all_grads_valid:

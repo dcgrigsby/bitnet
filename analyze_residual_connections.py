@@ -28,15 +28,26 @@ def analyze_transformer_block():
         content = f.read()
         lines = content.split('\n')
     
-    # Find the forward method
+    # Find the forward method in TransformerBlock
     in_forward = False
+    in_transformer_block = False
     forward_lines = []
+    
     for i, line in enumerate(lines, 1):
-        if 'def forward(self' in line and 'TransformerBlock' in content[:content.index(line)]:
+        # Track if we're in the TransformerBlock class
+        if 'class TransformerBlock' in line:
+            in_transformer_block = True
+        elif line.startswith('class ') and in_transformer_block:
+            in_transformer_block = False
+            
+        # Find the forward method within TransformerBlock
+        if in_transformer_block and 'def forward(self' in line:
             in_forward = True
+            
         if in_forward:
             forward_lines.append((i, line))
-            if line.strip() and not line.strip().startswith('#') and line.strip().startswith('return'):
+            # Stop at the return statement
+            if line.strip().startswith('return '):
                 break
     
     print("\n✓ Located TransformerBlock.forward() method\n")
