@@ -7,3 +7,6 @@ dist/
 build/
 *.egg-info/
 .worktrees/
+
+# Training run artifacts (debug, checkpoints, logs, samples)
+runs/

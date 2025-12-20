@@ -85,6 +85,10 @@ class BitNetModel(nn.Module):
         # Output projection (language modeling head)
         self.lm_head: nn.Linear = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
 
+        # Tie embeddings: share weights between input embeddings and output projection
+        # This reduces parameters and is standard practice for language models
+        self.lm_head.weight = self.token_embeddings.weight
+
 
     @override
     def forward(self, input_ids: torch.Tensor, attn_mask: Optional[torch.Tensor] = None) -> torch.Tensor:

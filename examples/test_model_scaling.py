@@ -41,6 +41,40 @@ def count_unique_tokens(model: BitNetModel, tokenizer: PreTrainedTokenizer, devi
     return len(unique_tokens)
 
 
+def generate_text_samples(model: BitNetModel, tokenizer: PreTrainedTokenizer, device: torch.device, max_length: int = 50) -> list[str]:
+    """Generate text from example prompts to see what the model produces."""
+    model.eval()
+
+    prompts = [
+        "The quick brown",
+        "In the beginning",
+        "Once upon a time",
+    ]
+
+    samples = []
+
+    with torch.no_grad():
+        for prompt in prompts:
+            input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
+
+            # Generate tokens
+            generated = input_ids.clone()
+            for _ in range(max_length):
+                logits = model(generated)
+                next_token = torch.argmax(logits[0, -1, :], dim=-1, keepdim=True)
+                generated = torch.cat([generated, next_token.unsqueeze(0)], dim=1)
+
+                # Stop if we hit end of sequence token
+                if next_token.item() == tokenizer.eos_token_id:
+                    break
+
+            generated_text = tokenizer.decode(generated[0], skip_special_tokens=True)
+            samples.append(f"  Prompt: '{prompt}' -> '{generated_text}'")
+
+    model.train()
+    return samples
+
+
 def main():
     """Test Stage 1 training with different model sizes."""
 
@@ -137,6 +171,18 @@ def main():
                 print(f"Step {step:6d}/{num_steps} ({progress:5.1f}%): Loss={loss:.4f}, UniqueTokens={unique_count:2d}, LR={current_lr:.6f}, WD={current_wd:.2f}")
                 f.write(f"{step},{loss:.4f},{unique_count},{current_lr:.6f},{current_wd:.2f}\n")
                 f.flush()
+
+                # Generate text samples every 10k steps
+                if step % 10000 == 0:
+                    print(f"\n=== Text Generation Samples at Step {step} ===")
+                    f.write(f"\n=== Text Generation Samples at Step {step} ===\n")
+                    samples = generate_text_samples(model, tokenizer, device, max_length=50)
+                    for sample in samples:
+                        print(sample)
+                        f.write(sample + "\n")
+                    print("=" * 50 + "\n")
+                    f.write("=" * 50 + "\n\n")
+                    f.flush()
 
     print(f"\nTraining complete. Results saved to {output_file}")
 

@@ -26,7 +26,7 @@ def get_rotary_freqs(
     """
 
     # Compute inverse frequencies
-    inv_freq = 1.0 / (theta ** (torch.arange(0, head_dim, 2).float() / head_dim))
+    inv_freq = 1.0 / (theta ** (torch.arange(0, head_dim, 2, device=device).float() / head_dim))
 
     # Compute positional frequencies
     t = torch.arange(seq_len, device=device).float()

@@ -48,38 +48,42 @@ class WikiTextDataLoader:
         step_count = 0
         buffer: list[int] = []
 
-        for sample in self.dataset:
-            text: str = sample["text"].strip()
-            if not text:
-                continue
+        # Keep cycling through dataset if num_steps is specified
+        while True:
+            for sample in self.dataset:
+                text: str = sample["text"].strip()
+                if not text:
+                    continue
 
-            # Tokenize
-            tokens: list[int] = self.tokenizer.encode(text)
-            buffer.extend(tokens)
+                # Tokenize
+                tokens: list[int] = self.tokenizer.encode(text)
+                buffer.extend(tokens)
 
-            # Emit batches when buffer is large enough
-            while len(buffer) >= self.batch_size * self.seq_len:
-                batch_tokens: list[int] = buffer[: self.batch_size * self.seq_len]
-                buffer = buffer[self.batch_size * self.seq_len :]
+                # Emit batches when buffer is large enough
+                while len(buffer) >= self.batch_size * self.seq_len:
+                    batch_tokens: list[int] = buffer[: self.batch_size * self.seq_len]
+                    buffer = buffer[self.batch_size * self.seq_len :]
 
-                # Reshape into batch
-                batch = torch.tensor(batch_tokens).reshape(self.batch_size, self.seq_len)
-                yield batch
-
-                step_count += 1
-                if self.num_steps is not None and step_count >= self.num_steps:
-                    return
-
-        # Emit final partial batch if we have steps remaining
-        if self.num_steps is None or step_count < self.num_steps:
-            if len(buffer) >= self.seq_len:
-                remaining_tokens: list[int] = buffer[: self.batch_size * self.seq_len]
-                if len(remaining_tokens) > 0:
-                    # Pad if needed
-                    if len(remaining_tokens) < self.batch_size * self.seq_len:
-                        pad_len = self.batch_size * self.seq_len - len(remaining_tokens)
-                        pad_token = cast(int, self.tokenizer.pad_token_id)
-                        remaining_tokens.extend([pad_token] * pad_len)
-
-                    batch = torch.tensor(remaining_tokens).reshape(self.batch_size, self.seq_len)
+                    # Reshape into batch
+                    batch = torch.tensor(batch_tokens).reshape(self.batch_size, self.seq_len)
                     yield batch
+
+                    step_count += 1
+                    if self.num_steps is not None and step_count >= self.num_steps:
+                        return
+
+            # If num_steps is None, only go through dataset once
+            if self.num_steps is None:
+                # Emit final partial batch
+                if len(buffer) >= self.seq_len:
+                    remaining_tokens: list[int] = buffer[: self.batch_size * self.seq_len]
+                    if len(remaining_tokens) > 0:
+                        # Pad if needed
+                        if len(remaining_tokens) < self.batch_size * self.seq_len:
+                            pad_len = self.batch_size * self.seq_len - len(remaining_tokens)
+                            pad_token = cast(int, self.tokenizer.pad_token_id)
+                            remaining_tokens.extend([pad_token] * pad_len)
+
+                        batch = torch.tensor(remaining_tokens).reshape(self.batch_size, self.seq_len)
+                        yield batch
+                return
