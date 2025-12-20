@@ -8,6 +8,12 @@ that residual connections are properly implemented for backpropagation.
 
 import os
 import re
+import sys
+
+# Get the script directory
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = os.path.join(SCRIPT_DIR, 'src', 'bitnet')
+TEST_DIR = os.path.join(SCRIPT_DIR, 'tests')
 
 
 def analyze_transformer_block():
@@ -16,7 +22,7 @@ def analyze_transformer_block():
     print("ANALYZING: src/bitnet/transformer.py - TransformerBlock")
     print("=" * 70)
     
-    file_path = "/home/runner/work/bitnet/bitnet/src/bitnet/transformer.py"
+    file_path = os.path.join(SRC_DIR, 'transformer.py')
     
     with open(file_path, 'r') as f:
         content = f.read()
@@ -78,7 +84,7 @@ def analyze_attention_normalization():
     print("ANALYZING: src/bitnet/attention.py - Attention Layer")
     print("=" * 70)
     
-    file_path = "/home/runner/work/bitnet/bitnet/src/bitnet/attention.py"
+    file_path = os.path.join(SRC_DIR, 'attention.py')
     
     with open(file_path, 'r') as f:
         content = f.read()
@@ -116,7 +122,7 @@ def analyze_feedforward_normalization():
     print("ANALYZING: src/bitnet/feedforward.py - FeedForward Layer")
     print("=" * 70)
     
-    file_path = "/home/runner/work/bitnet/bitnet/src/bitnet/feedforward.py"
+    file_path = os.path.join(SRC_DIR, 'feedforward.py')
     
     with open(file_path, 'r') as f:
         content = f.read()
@@ -154,7 +160,7 @@ def analyze_tests():
     print("ANALYZING: tests/test_transformer.py - Test Coverage")
     print("=" * 70)
     
-    file_path = "/home/runner/work/bitnet/bitnet/tests/test_transformer.py"
+    file_path = os.path.join(TEST_DIR, 'test_transformer.py')
     
     with open(file_path, 'r') as f:
         content = f.read()

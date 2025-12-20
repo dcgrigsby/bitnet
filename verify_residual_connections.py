@@ -9,7 +9,12 @@ This script demonstrates that:
 """
 
 import sys
-sys.path.insert(0, '/home/runner/work/bitnet/bitnet/src')
+import os
+
+# Add src directory to path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+src_dir = os.path.join(script_dir, 'src')
+sys.path.insert(0, src_dir)
 
 import torch
 from bitnet.transformer import TransformerBlock, BitNetModel
@@ -214,12 +219,12 @@ def verify_architecture_structure():
     print("           Output")
     
     print("\n✓ Both residual connections are present in transformer.py:")
-    print("  - Line 49-50: x = x + attn_output  (after attention)")
-    print("  - Line 53-54: x = x + ffn_output   (after feedforward)")
+    print("  - x = x + attn_output  (after attention)")
+    print("  - x = x + ffn_output   (after feedforward)")
     
     print("\n✓ Pre-normalization is used:")
-    print("  - RMSNorm applied BEFORE attention (attention.py line 110)")
-    print("  - RMSNorm applied BEFORE feedforward (feedforward.py line 40)")
+    print("  - RMSNorm applied BEFORE attention (in Attention class)")
+    print("  - RMSNorm applied BEFORE feedforward (in FeedForward class)")
 
 
 def main():
