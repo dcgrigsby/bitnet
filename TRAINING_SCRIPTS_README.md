@@ -83,10 +83,15 @@ runs/test_10steps/
 
 ---
 
-### 2. Run Full Training (60k steps, ~4-5 hours)
+### 2. Run Full Training (400k steps, ~28 hours)
 
 ```bash
 python train_bitnet_95m.py
+```
+
+**Recommended for long runs (skip evaluation for speed):**
+```bash
+python train_bitnet_95m.py --no-eval
 ```
 
 **With custom settings:**
@@ -95,22 +100,24 @@ python train_bitnet_95m.py \
     --run-id my_custom_run \
     --batch-size 32 \
     --seq-len 1024 \
-    --num-steps 60000 \
+    --num-steps 400000 \
     --device cuda \
-    --seed 42
+    --seed 42 \
+    --no-eval
 ```
 
 **Key arguments:**
 - `--run-id`: Custom run identifier (default: auto-generated timestamp)
 - `--batch-size`: Global batch size (default: 32)
 - `--seq-len`: Sequence length (default: 1024)
-- `--num-steps`: Total training steps (default: 60000)
+- `--num-steps`: Total training steps (default: 400000)
 - `--device`: Device to use (default: cuda if available)
 - `--seed`: Random seed (default: 42)
 - `--no-eval`: Disable evaluation for faster training
 - `--log-interval`: Log scalars every N steps (default: 100)
-- `--checkpoint-interval`: Save checkpoint every N steps (default: 5000)
-- `--sample-interval`: Generate samples every N steps (default: 1000)
+- `--checkpoint-interval`: Save checkpoint every N steps (default: 10000)
+- `--sample-interval`: Generate samples every N steps (default: 5000)
+- `--eval-interval`: Run evaluation every N steps (default: 5000)
 - `--resume-from`: Path to checkpoint to resume from
 
 **Full help:**
@@ -226,25 +233,28 @@ python train_bitnet_95m.py \
 - Embeddings: **Tied** (implemented in transformer.py:90)
 
 ### Training
-- Dataset: FineWeb-Edu (1.3T tokens, streaming)
-- Steps: 60,000
+- Dataset: FineWeb-Edu sample-10BT (~10B tokens, streaming)
+- Steps: 400,000
 - Batch: 32
 - Seq Len: 1,024
-- Total Tokens: **1.97B** (T/P ≈ 20.6)
+- Total Tokens: **13.1B** (T/P ≈ 137)
+- Data Repetition: 1.3× (seeing each token ~1.3 times on average)
 - LR Schedule: Warmup (375) → Stage 1 (0.0015→0.001) → Stage 2 (0.001→0.000015)
 - WD Schedule: Stage 1 (0.1) → Stage 2 (0.0)
+- Stage Boundary: Step 200,000 (50%)
 
 ### Expected Runtime
-- **~4-5 hours** on modern GPU (RTX 3090, A100)
+- **~28 hours (~1.2 days)** on modern GPU (RTX 3090, A100)
 - **~250ms/step** at batch=32, seq_len=1024
-- **~12,000 tokens/sec** throughput
+- **~20,000 tokens/sec** throughput
+- Uses ~20% of 6-day budget, leaves 4.8 days buffer
 
 ### Disk Space
-- **~5-10 GB** per run
-  - Checkpoints: ~380MB each × 12-15 = ~5GB
-  - Metrics: ~12MB
-  - Samples: ~300KB
-  - Eval: ~6KB
+- **~18-20 GB** per run
+  - Checkpoints: ~380MB each × 40 = ~15GB
+  - Metrics: ~500MB (400k lines)
+  - Samples: ~3GB (80 events × 5 prompts × 3 modes)
+  - Eval: ~100KB
 
 ---
 
@@ -301,12 +311,22 @@ pip install -e .
 
 ## 📝 Next Steps
 
-1. **Run 10-step test** to verify infrastructure
-2. **Run 1000-step pilot** (~5 minutes) to check metrics
-3. **Review pilot results** using status checker
-4. **Launch full 60k step training** (~4-5 hours)
-5. **Monitor periodically** with status checker
-6. **Analyze results** from metrics, samples, and eval files
+1. ✅ **10-step test completed** - Infrastructure verified
+2. **Launch full 400k step training** (~28 hours, ~1.2 days)
+   ```bash
+   python train_bitnet_95m.py --no-eval
+   ```
+3. **Monitor 2-3 times per day** with status checker
+   ```bash
+   python check_training_status.py runs/<run_id>
+   ```
+4. **Check key milestones:**
+   - Step 50k (~3.5 hours): First major checkpoint
+   - Step 100k (~7 hours): Quarter complete
+   - Step 200k (~14 hours): Stage 2 begins (WD drops to 0.0)
+   - Step 300k (~21 hours): Three-quarter complete
+   - Step 400k (~28 hours): Complete
+5. **Analyze final results** from metrics, samples, and checkpoints
 
 ---
 

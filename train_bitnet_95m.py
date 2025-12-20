@@ -97,8 +97,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--num-steps",
         type=int,
-        default=60000,
-        help="Total training steps (default: 60000)",
+        default=400000,
+        help="Total training steps (default: 400000)",
     )
     parser.add_argument(
         "--grad-accum-steps",
@@ -125,20 +125,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--eval-interval",
         type=int,
-        default=1000,
-        help="Run evaluation every N steps (default: 1000)",
+        default=5000,
+        help="Run evaluation every N steps (default: 5000)",
     )
     parser.add_argument(
         "--sample-interval",
         type=int,
-        default=1000,
-        help="Generate samples every N steps (default: 1000)",
+        default=5000,
+        help="Generate samples every N steps (default: 5000)",
     )
     parser.add_argument(
         "--checkpoint-interval",
         type=int,
-        default=5000,
-        help="Save checkpoint every N steps (default: 5000)",
+        default=10000,
+        help="Save checkpoint every N steps (default: 10000)",
     )
     parser.add_argument(
         "--no-eval",
@@ -385,7 +385,8 @@ def main() -> None:
             generate_samples(args.run_id, step, model, tokenizer, device)
 
         # Checkpointing
-        mandatory = step in [29999, 30000]  # Stage boundaries
+        stage_boundary = args.num_steps // 2
+        mandatory = step in [stage_boundary - 1, stage_boundary]  # Stage boundaries
         if step % args.checkpoint_interval == 0 or mandatory:
             save_checkpoint(
                 args.run_id,
