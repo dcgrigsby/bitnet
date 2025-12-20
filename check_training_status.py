@@ -41,12 +41,22 @@ def read_latest_metrics(run_dir: Path) -> dict[str, Any] | None:
     if not scalars_file.exists():
         return None
 
-    # Read last line
+    # Read last line with core metrics (not BitNet-only metrics)
     with open(scalars_file, "r") as f:
         lines = f.readlines()
         if not lines:
             return None
-        return json.loads(lines[-1])
+
+        # Read backwards to find last line with tokens_seen
+        for line in reversed(lines):
+            try:
+                metrics = json.loads(line)
+                if "tokens_seen" in metrics:
+                    return metrics
+            except json.JSONDecodeError:
+                continue
+
+        return None
 
 
 def read_latest_eval(run_dir: Path) -> dict[str, Any] | None:

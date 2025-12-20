@@ -30,7 +30,7 @@ class FineWebEduDataLoader:
         seq_len: int = 1024,
         num_steps: int = 60000,
         split: str = "train",
-        name: str = "default",
+        name: str = "sample-10BT",  # Use 10BT sample (more stable than default)
     ) -> None:
         self.tokenizer = tokenizer
         self.batch_size = batch_size
@@ -40,11 +40,14 @@ class FineWebEduDataLoader:
         self.name = name
 
         # Load dataset in streaming mode
+        # Note: Some parquet files have different schemas (date column presence)
+        # We handle this by only accessing the 'text' field
         self.dataset = load_dataset(
             "HuggingFaceFW/fineweb-edu",
             name=name,
             split=split,
             streaming=True,
+            trust_remote_code=True,  # Allow handling schema variations
         )
 
         # Cache first 1000 tokens for fingerprinting

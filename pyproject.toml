@@ -13,6 +13,8 @@ dependencies = [
     "transformers>=4.57.3,<5",
     "sentencepiece>=0.1.99,<1",
     "datasets>=2.14.0,<3",
+    "protobuf>=3.20.0,<7",
+    "tqdm>=4.65.0,<5",
 ]
 dynamic = ["version"]
 
