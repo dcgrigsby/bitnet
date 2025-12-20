@@ -72,9 +72,20 @@ x_norm = self.norm(x)  # Normalize before FFN
 
 ## Gradient Flow Analysis
 
+### How Forward Method Enables Backpropagation
+
+**Important:** In PyTorch, the `forward()` method defines the computational graph that is used during backpropagation (the backward pass). When you call `.backward()` on a loss, PyTorch automatically:
+1. Traverses the computational graph created during the forward pass
+2. Computes gradients by applying the chain rule in reverse order
+3. Accumulates gradients in the `.grad` attribute of each parameter
+
+The residual connections in the forward method directly impact how gradients flow during backpropagation.
+
 ### Why Residual Connections Enable Backpropagation
 
-1. **Direct Gradient Path**: The addition operation `x = x + sublayer_output` creates a direct path for gradients to flow backward through the network
+1. **Direct Gradient Path**: The addition operation `x = x + sublayer_output` in the forward pass creates a direct path for gradients to flow backward through the network
+   - During forward: `output = x + sublayer_output`
+   - During backward: `∂L/∂x = ∂L/∂output + ∂L/∂sublayer_output`
 
 2. **Gradient Distribution**: During backpropagation, gradients split at each residual connection:
    ```
@@ -83,8 +94,10 @@ x_norm = self.norm(x)  # Normalize before FFN
    The "1" term provides an unimpeded gradient path, mitigating vanishing gradients
 
 3. **Multi-Layer Gradient Flow**: With N transformer blocks, gradients can flow through:
-   - The direct residual path (multiplicative factor of 1)
-   - The computational path through attention and FFN layers
+   - The direct residual path (multiplicative factor of 1) - allows gradients to skip layers
+   - The computational path through attention and FFN layers - allows learning
+
+**The forward() method operations determine backward() gradient flow.** The addition operations we implement in forward() create the gradient splitting behavior needed for effective backpropagation.
 
 ## Test Coverage
 

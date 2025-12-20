@@ -14,6 +14,8 @@
 
 ### 1. Code Implementation (`src/bitnet/transformer.py`)
 
+The `forward()` method defines the computational graph used during backpropagation:
+
 ```python
 def forward(self, x: torch.Tensor, attn_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
     # Attention with residual
@@ -26,6 +28,12 @@ def forward(self, x: torch.Tensor, attn_mask: Optional[torch.Tensor] = None) -> 
     
     return x
 ```
+
+**How this enables backpropagation:**
+- PyTorch's autograd automatically computes gradients during `.backward()`
+- The addition operations (`x = x + output`) create gradient paths
+- During backward pass: gradients split at each `+` operation
+- This allows gradients to flow directly through residual paths AND through computational layers
 
 ### 2. Test Coverage (`tests/test_transformer.py`)
 
