@@ -30,33 +30,38 @@ When you call `loss.backward()`, PyTorch automatically:
 
 ### During Forward Pass:
 ```
-Input x
+Input x = [1.0, 2.0]
    │
-   ├─────────────┐
-   │             │
-   ↓          (copy)
-Attention        │
-   │             │
-   ↓             │
-attn_output      │
-   │             │
-   └──── + ──────┘
+   ├─────────────────┐
+   │                 │
+   ↓              (copy)
+Attention            │
+   │                 │
+   ↓                 │
+attn_output          │
+= [0.5, 0.3]         │
+   │                 │
+   └──── + ──────────┘  ← This addition in forward()
         │
-     output
+     output = [1.5, 2.3]
 ```
 
-### During Backward Pass (automatic):
+### During Backward Pass (automatic when loss.backward() is called):
 ```
-Gradient from loss
+Gradient from loss ∂L/∂output = [1.0, 1.0]
         │
         ↓
     output grad
         │
-        ├─────────────┐
-        │             │
-        ↓             ↓
-  attn_output    input x
-      grad         grad
+        ├─────────────────┐
+        │                 │
+        ↓                 ↓
+  ∂L/∂attn_output    ∂L/∂input_x
+    = [1.0, 1.0]      = [1.0, 1.0]
+        │                 │
+        ↓                 ↓
+  (flows through      (flows directly -
+   attention layers)   no vanishing!)
 ```
 
 **Key insight:** The `+` operation in forward() causes gradient to **split** during backward:
