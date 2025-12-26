@@ -165,10 +165,12 @@ def main() -> None:
     print(f"BitNet 95M Training Run: {args.run_id}")
     print("=" * 80)
     print(f"Device: {args.device}")
-    print(f"Batch size: {args.batch_size}")
+    print(f"Batch size: {args.batch_size} (per device)")
+    print(f"Gradient accumulation steps: {args.grad_accum_steps}")
+    print(f"Effective batch size: {args.batch_size * args.grad_accum_steps}")
     print(f"Sequence length: {args.seq_len}")
     print(f"Total steps: {args.num_steps}")
-    print(f"Total tokens: {args.num_steps * args.batch_size * args.seq_len:,}")
+    print(f"Total tokens: {args.num_steps * args.batch_size * args.grad_accum_steps * args.seq_len:,}")
     print(f"Seed: {args.seed}")
     print("=" * 80)
     print()
@@ -221,7 +223,7 @@ def main() -> None:
         tokenizer,
         batch_size=args.batch_size,
         seq_len=args.seq_len,
-        num_steps=args.num_steps,
+        num_steps=args.num_steps * args.grad_accum_steps,  # Account for gradient accumulation
         split="train",
     )
 
@@ -277,18 +279,44 @@ def main() -> None:
     print("Provenance written.")
     print()
 
+    # Resume from checkpoint if specified
+    start_step = 0
+    if args.resume_from:
+        print(f"Loading checkpoint from {args.resume_from}...")
+        checkpoint = torch.load(args.resume_from, map_location=device, weights_only=False)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        lr_scheduler.load_state_dict(checkpoint["lr_scheduler_state"])
+        wd_scheduler.load_state_dict(checkpoint["wd_scheduler_state"])
+        start_step = checkpoint["step"]
+
+        # Adjust dataloader to generate only remaining batches
+        remaining_steps = args.num_steps - start_step
+        train_dataloader = FineWebEduDataLoader(
+            tokenizer,
+            batch_size=args.batch_size,
+            seq_len=args.seq_len,
+            num_steps=remaining_steps * args.grad_accum_steps,
+            split="train",
+        )
+
+        print(f"Resumed from step {start_step}")
+        print(f"Continuing for {remaining_steps} more steps to reach {args.num_steps}")
+        print()
+
     # Training loop
     print("Starting training...")
     print("=" * 80)
     print()
 
     model.train()
-    step = 0
+    step = start_step
     loss_history: list[float] = []
     train_loss_ma = 0.0  # Moving average
+    accumulated_loss = 0.0  # For gradient accumulation
 
     # Progress bar
-    pbar = tqdm(total=args.num_steps, desc="Training", unit="step")
+    pbar = tqdm(total=args.num_steps, initial=start_step, desc="Training", unit="step")
 
     # Iterate through data
     for batch_idx, batch in enumerate(train_dataloader):
@@ -299,12 +327,13 @@ def main() -> None:
             write_dataset_fingerprint(
                 args.run_id, train_dataloader, "meta-llama/Llama-2-7b-hf"
             )
+            optimizer.zero_grad()
 
-        # Start timing
-        step_start = time.time()
+        # Start timing (only on first micro-batch)
+        if batch_idx % args.grad_accum_steps == 0:
+            step_start = time.time()
 
         # Forward pass
-        optimizer.zero_grad()
         logits = model(batch)
 
         # Compute loss
@@ -312,116 +341,128 @@ def main() -> None:
         flat_targets = batch[:, 1:].reshape(-1)
         loss = loss_fn(flat_logits, flat_targets)
 
+        # Scale loss by accumulation steps for correct gradient magnitude
+        scaled_loss = loss / args.grad_accum_steps
+        accumulated_loss += loss.item()
+
         # Backward pass
-        loss.backward()
+        scaled_loss.backward()
 
-        # Gradient clipping
-        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        # Only update weights every grad_accum_steps
+        if (batch_idx + 1) % args.grad_accum_steps == 0:
+            # Gradient clipping
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
-        # Optimizer step
-        optimizer.step()
-        lr_scheduler.step()
-        wd_scheduler.step()
+            # Optimizer step
+            optimizer.step()
+            lr_scheduler.step()
+            wd_scheduler.step()
+            optimizer.zero_grad()
 
-        # End timing
-        step_time_ms = (time.time() - step_start) * 1000
+            # End timing
+            step_time_ms = (time.time() - step_start) * 1000
 
-        step += 1
+            step += 1
 
-        # Update loss history
-        loss_history.append(loss.item())
-        if len(loss_history) > 1000:
-            loss_history = loss_history[-1000:]  # Keep last 1000
+            # Use accumulated loss for logging
+            loss_value = accumulated_loss / args.grad_accum_steps
+            accumulated_loss = 0.0
 
-        train_loss_ma = sum(loss_history[-100:]) / min(100, len(loss_history))
+            # Update loss history
+            loss_history.append(loss_value)
+            if len(loss_history) > 1000:
+                loss_history = loss_history[-1000:]  # Keep last 1000
 
-        # Log scalars
-        if step % args.log_interval == 0 or step == 1:
-            current_lr = cast(float, optimizer.param_groups[0]["lr"])
-            current_wd = cast(float, optimizer.param_groups[0]["weight_decay"])
+            train_loss_ma = sum(loss_history[-100:]) / min(100, len(loss_history))
 
-            log_scalars(
-                args.run_id,
-                step,
-                loss.item(),
-                current_lr,
-                current_wd,
-                grad_norm.item(),
-                step_time_ms,
-                args.batch_size,
-                args.seq_len,
+            # Log scalars
+            if step % args.log_interval == 0 or step == 1:
+                current_lr = cast(float, optimizer.param_groups[0]["lr"])
+                current_wd = cast(float, optimizer.param_groups[0]["weight_decay"])
+
+                log_scalars(
+                    args.run_id,
+                    step,
+                    loss_value,
+                    current_lr,
+                    current_wd,
+                    grad_norm.item(),
+                    step_time_ms,
+                    args.batch_size * args.grad_accum_steps,  # Effective batch size
+                    args.seq_len,
+                )
+
+                # Update progress bar
+                stage = "Stage 2" if step > args.num_steps // 2 else "Stage 1"
+                pbar.set_postfix(
+                    {
+                        "loss": f"{loss_value:.4f}",
+                        "lr": f"{current_lr:.6f}",
+                        "wd": f"{current_wd:.2f}",
+                        "stage": stage,
+                    }
+                )
+
+            # Log BitNet metrics
+            if step % args.log_interval == 0:
+                log_bitnet_metrics(args.run_id, step, model)
+
+            # Evaluation
+            if not args.no_eval and step % args.eval_interval == 0 and eval_dataloader:
+                eval_loss = run_evaluation(
+                    args.run_id,
+                    step,
+                    model,
+                    eval_dataloader,
+                    loss_fn,
+                    device,
+                    train_loss_ma,
+                )
+                print(f"\n[Step {step}] Eval loss: {eval_loss:.4f}\n")
+
+            # Generate samples
+            if step % args.sample_interval == 0:
+                generate_samples(args.run_id, step, model, tokenizer, device)
+
+            # Checkpointing
+            stage_boundary = args.num_steps // 2
+            mandatory = step in [stage_boundary - 1, stage_boundary]  # Stage boundaries
+            if step % args.checkpoint_interval == 0 or mandatory:
+                save_checkpoint(
+                    args.run_id,
+                    step,
+                    model,
+                    optimizer,
+                    lr_scheduler,
+                    wd_scheduler,
+                    loss_value,
+                    config,
+                    mandatory=mandatory,
+                )
+                if mandatory:
+                    print(f"\n[MANDATORY CHECKPOINT] Saved at step {step}\n")
+
+            # Anomaly detection
+            mean_entropy = 0.0  # Could compute from recent samples
+            max_repetition = 0  # Could compute from recent samples
+
+            is_anomaly, event_name = detect_anomaly(
+                loss_value, loss_history, mean_entropy, max_repetition
             )
 
-            # Update progress bar
-            stage = "Stage 2" if step > args.num_steps // 2 else "Stage 1"
-            pbar.set_postfix(
-                {
-                    "loss": f"{loss.item():.4f}",
-                    "lr": f"{current_lr:.6f}",
-                    "wd": f"{current_wd:.2f}",
-                    "stage": stage,
-                }
-            )
+            if is_anomaly and event_name:
+                print(f"\n[ANOMALY DETECTED] {event_name} at step {step}\n")
+                trigger_anomaly_dump(
+                    args.run_id, step, model, batch, tokenizer, event_name
+                )
 
-        # Log BitNet metrics
-        if step % args.log_interval == 0:
-            log_bitnet_metrics(args.run_id, step, model)
-
-        # Evaluation
-        if not args.no_eval and step % args.eval_interval == 0 and eval_dataloader:
-            eval_loss = run_evaluation(
-                args.run_id,
-                step,
-                model,
-                eval_dataloader,
-                loss_fn,
-                device,
-                train_loss_ma,
-            )
-            print(f"\n[Step {step}] Eval loss: {eval_loss:.4f}\n")
-
-        # Generate samples
-        if step % args.sample_interval == 0:
-            generate_samples(args.run_id, step, model, tokenizer, device)
-
-        # Checkpointing
-        stage_boundary = args.num_steps // 2
-        mandatory = step in [stage_boundary - 1, stage_boundary]  # Stage boundaries
-        if step % args.checkpoint_interval == 0 or mandatory:
-            save_checkpoint(
-                args.run_id,
-                step,
-                model,
-                optimizer,
-                lr_scheduler,
-                wd_scheduler,
-                loss.item(),
-                config,
-                mandatory=mandatory,
-            )
-            if mandatory:
-                print(f"\n[MANDATORY CHECKPOINT] Saved at step {step}\n")
-
-        # Anomaly detection
-        mean_entropy = 0.0  # Could compute from recent samples
-        max_repetition = 0  # Could compute from recent samples
-
-        is_anomaly, event_name = detect_anomaly(
-            loss.item(), loss_history, mean_entropy, max_repetition
-        )
-
-        if is_anomaly and event_name:
-            print(f"\n[ANOMALY DETECTED] {event_name} at step {step}\n")
-            trigger_anomaly_dump(
-                args.run_id, step, model, batch, tokenizer, event_name
-            )
-
-        pbar.update(1)
+            pbar.update(1)
 
     pbar.close()
 
     # Final checkpoint
     print("\nSaving final checkpoint...")
+    final_loss = loss_history[-1] if loss_history else 0.0
     save_checkpoint(
         args.run_id,
         args.num_steps,
@@ -429,7 +470,7 @@ def main() -> None:
         optimizer,
         lr_scheduler,
         wd_scheduler,
-        loss.item(),
+        final_loss,
         config,
         mandatory=True,
     )

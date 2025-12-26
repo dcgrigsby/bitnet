@@ -83,7 +83,7 @@ runs/test_10steps/
 
 ---
 
-### 2. Run Full Training (400k steps, ~28 hours)
+### 2. Run Full Training (400k steps, ~77 hours)
 
 ```bash
 python train_bitnet_95m.py
@@ -232,22 +232,25 @@ python train_bitnet_95m.py \
 - FFN: 3,072 (4× expansion, SwiGLU)
 - Embeddings: **Tied** (implemented in transformer.py:90)
 
-### Training
+### Training (Updated for 12GB GPU)
 - Dataset: FineWeb-Edu sample-10BT (~10B tokens, streaming)
 - Steps: 400,000
-- Batch: 32
-- Seq Len: 1,024
-- Total Tokens: **13.1B** (T/P ≈ 137)
-- Data Repetition: 1.3× (seeing each token ~1.3 times on average)
+- Batch: 16 (per device)
+- Gradient Accumulation: 2 steps
+- Effective Batch: 32
+- Seq Len: 256 (optimized for GPU memory)
+- Total Tokens: **3.3B** (T/P ≈ 34)
+- Data Repetition: 0.33× (no repetition needed)
 - LR Schedule: Warmup (375) → Stage 1 (0.0015→0.001) → Stage 2 (0.001→0.000015)
 - WD Schedule: Stage 1 (0.1) → Stage 2 (0.0)
 - Stage Boundary: Step 200,000 (50%)
 
-### Expected Runtime
-- **~28 hours (~1.2 days)** on modern GPU (RTX 3090, A100)
-- **~250ms/step** at batch=32, seq_len=1024
-- **~20,000 tokens/sec** throughput
-- Uses ~20% of 6-day budget, leaves 4.8 days buffer
+### Expected Runtime (12GB GPU - RTX 3060)
+- **~77 hours (3.2 days)** on RTX 3060 (12GB)
+- **~695ms/step** at batch=16, seq_len=256, grad_accum=2
+- **~11,800 tokens/sec** throughput
+- Uses ~54% of 6-day budget, leaves 2.8 days buffer
+- **Context:** 256 tokens ≈ 1-2 paragraphs (optimized for short-form text generation)
 
 ### Disk Space
 - **~18-20 GB** per run
@@ -295,8 +298,9 @@ pip install datasets
 
 ### Error: "CUDA out of memory"
 ```bash
-# Reduce batch size or sequence length
-python train_bitnet_95m.py --batch-size 16 --seq-len 512
+# Already optimized for 12GB GPU with batch=16, seq_len=256, grad_accum=2
+# If still having issues, try further reducing batch size:
+python train_bitnet_95m.py --batch-size 12 --seq-len 256 --grad-accum-steps 3
 ```
 
 ### Error: "ImportError: No module named 'bitnet.data_fineweb'"
@@ -312,7 +316,7 @@ pip install -e .
 ## 📝 Next Steps
 
 1. ✅ **10-step test completed** - Infrastructure verified
-2. **Launch full 400k step training** (~28 hours, ~1.2 days)
+2. **Launch full 400k step training** (~77 hours, ~3.2 days)
    ```bash
    python train_bitnet_95m.py --no-eval
    ```
@@ -321,11 +325,11 @@ pip install -e .
    python check_training_status.py runs/<run_id>
    ```
 4. **Check key milestones:**
-   - Step 50k (~3.5 hours): First major checkpoint
-   - Step 100k (~7 hours): Quarter complete
-   - Step 200k (~14 hours): Stage 2 begins (WD drops to 0.0)
-   - Step 300k (~21 hours): Three-quarter complete
-   - Step 400k (~28 hours): Complete
+   - Step 50k (~9.6 hours): First major checkpoint
+   - Step 100k (~19.2 hours): Quarter complete
+   - Step 200k (~38.5 hours): Stage 2 begins (WD drops to 0.0)
+   - Step 300k (~57.7 hours): Three-quarter complete
+   - Step 400k (~77 hours): Complete
 5. **Analyze final results** from metrics, samples, and checkpoints
 
 ---

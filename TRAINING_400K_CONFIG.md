@@ -1,8 +1,8 @@
 # BitNet 95M - 400K Step Training Configuration
 
 **Configuration finalized:** 2025-12-20
-**Training duration:** ~28 hours (~1.2 days)
-**Total tokens:** 13.1 billion (T/P ≈ 137)
+**Training duration:** ~77 hours (3.2 days)
+**Total tokens:** 3.3 billion (T/P ≈ 34)
 
 ---
 
@@ -17,19 +17,23 @@
 - **Heads:** 12 query, 6 KV (GQA 2:1)
 - **FFN:** 3,072 (SwiGLU)
 
-### Training Hyperparameters
+### Training Hyperparameters (Updated for 12GB GPU)
 - **Total steps:** 400,000
-- **Batch size:** 32
-- **Sequence length:** 1,024
-- **Tokens per step:** 32,768
-- **Total tokens:** 13,107,200,000 (~13.1B)
-- **T/P ratio:** ~137 (beyond Chinchilla optimal of ~20)
+- **Batch size:** 16 (per device)
+- **Gradient accumulation:** 2 steps
+- **Effective batch size:** 32
+- **Sequence length:** 256 (optimized for GPU memory)
+- **Tokens per step:** 8,192
+- **Total tokens:** 3,276,800,000 (~3.3B)
+- **T/P ratio:** ~34 (reasonable for compute budget)
+- **Note:** Shorter sequences (256 tokens ≈ 1-2 paragraphs) prioritize training speed on limited GPU memory
 
 ### Dataset
 - **Name:** HuggingFaceFW/fineweb-edu (sample-10BT)
 - **Available tokens:** ~10 billion
-- **Repetition:** 1.3x (seeing data 1.3 times on average)
+- **Repetition:** 0.33x (seeing data 0.33 times on average - no repetition)
 - **Quality:** High-quality educational web content
+- **Context:** 256 tokens per sample (good for short-form text generation)
 
 ### Learning Rate Schedule
 - **Warmup:** 375 steps (0 → 0.0015)
@@ -49,16 +53,17 @@
 
 ## Expected Performance
 
-### Runtime
+### Runtime (Updated for 12GB GPU Configuration)
 - **Steps:** 400,000
-- **Step time:** ~250ms (measured)
-- **Total time:** 400,000 × 0.25s = 100,000s ≈ **27.8 hours**
-- **With overhead:** ~28-30 hours
-- **Completion:** ~1.2 days
+- **Step time:** ~695ms (measured with seq_len=256, batch=16, grad_accum=2)
+- **Total time:** 400,000 × 0.695s = 278,000s ≈ **77 hours**
+- **With overhead:** ~77 hours
+- **Completion:** ~3.2 days
 
-### Throughput
-- **Tokens/sec:** ~20,000 (measured in test)
-- **GPU utilization:** ~1.7 GB allocated, ~2.6 GB reserved
+### Throughput (Updated for 12GB GPU Configuration)
+- **Tokens/sec:** ~11,800 (measured with shorter sequences)
+- **GPU utilization:** ~2.2 GB allocated (fits comfortably in 12GB RTX 3060)
+- **Memory optimization:** Reduced seq_len from 1024→256 to fit in 12GB VRAM
 
 ### Storage
 - **Checkpoints:** 40 × 380MB = ~15 GB
@@ -81,19 +86,19 @@ python check_training_status.py runs/<run_id>
 ```
 
 **What to watch for:**
-- ✅ Loss steadily decreasing (should drop from ~140 to much lower)
+- ✅ Loss steadily decreasing (should drop from ~382 to much lower)
 - ✅ Samples improving (less repetition, more coherent text)
 - ✅ No anomalies (NaN/Inf detection)
-- ✅ Throughput stable (~20k tokens/sec)
+- ✅ Throughput stable (~11,800 tokens/sec)
 - ⚠️ Loss plateau (may indicate early stopping needed)
 
 ### Key Milestones
-- **Step 50,000:** ~3.5 hours - First major checkpoint
-- **Step 100,000:** ~7 hours - Quarter complete
-- **Step 199,999:** ~14 hours - Pre-stage-transition (mandatory)
-- **Step 200,000:** ~14 hours - Post-stage-transition (mandatory, WD drops to 0.0)
-- **Step 300,000:** ~21 hours - Three-quarter complete
-- **Step 400,000:** ~28 hours - Final checkpoint
+- **Step 50,000:** ~9.6 hours - First major checkpoint
+- **Step 100,000:** ~19.2 hours - Quarter complete
+- **Step 199,999:** ~38.5 hours - Pre-stage-transition (mandatory)
+- **Step 200,000:** ~38.5 hours - Post-stage-transition (mandatory, WD drops to 0.0)
+- **Step 300,000:** ~57.7 hours - Three-quarter complete
+- **Step 400,000:** ~77 hours - Final checkpoint
 
 ---
 
@@ -162,16 +167,16 @@ print('Saved to loss_curve.png')
 
 ## Expected Loss Trajectory
 
-Based on typical language model training:
+Based on typical language model training with seq_len=256:
 
-- **Steps 0-10k:** Loss drops rapidly from ~150 to ~8
-- **Steps 10k-50k:** Steady decrease ~8 → ~4
-- **Steps 50k-200k:** Gradual improvement ~4 → ~2.5
+- **Steps 0-10k:** Loss drops rapidly from ~382 to ~6-7
+- **Steps 10k-50k:** Steady decrease ~6 → ~3.5-4
+- **Steps 50k-200k:** Gradual improvement ~3.5 → ~2.8-3.2
 - **Step 200k:** Stage 2 begins (WD=0.0), may see small bump or acceleration
-- **Steps 200k-400k:** Continued improvement ~2.5 → ~1.8-2.0
-- **Final (400k):** Expected final loss ~1.8-2.2 (will be much better than 60k run)
+- **Steps 200k-400k:** Continued improvement ~2.8 → ~2.3-2.7
+- **Final (400k):** Expected final loss ~2.3-2.7 (shorter context = slightly higher loss than long-context models, but still good for short-form text)
 
-*Note: These are rough estimates. Actual values will vary.*
+*Note: Shorter sequences typically result in slightly higher loss values, but model quality for short-form generation will be good.*
 
 ---
 
@@ -187,26 +192,29 @@ You can always resume later if needed!
 
 ---
 
-## Comparison to Chinchilla Optimal
+## Comparison to Configurations
 
-| Metric | Chinchilla (60k) | Extended (400k) | Improvement |
-|--------|------------------|-----------------|-------------|
-| Steps | 60,000 | 400,000 | 6.7× |
-| Tokens | 1.97B | 13.1B | 6.7× |
-| T/P ratio | 20.6 | 137 | 6.7× |
-| Runtime | ~4 hours | ~28 hours | 7× |
-| Data repetition | 0.2× | 1.3× | 6.5× |
-| Expected final loss | ~3.5-4.0 | ~1.8-2.2 | ~40-50% better |
+| Metric | Original Plan | 12GB GPU Config | Notes |
+|--------|---------------|-----------------|-------|
+| Steps | 400,000 | 400,000 | Same |
+| Batch size | 32 | 16 (+ grad_accum 2) | Effective batch same |
+| Seq length | 1,024 | 256 | 4× reduction for memory |
+| Tokens | 13.1B | 3.3B | 4× fewer (shorter contexts) |
+| T/P ratio | 137 | 34 | More compute-efficient |
+| Runtime | ~28 hours | ~77 hours | Memory-constrained GPU |
+| Data repetition | 1.3× | 0.33× | No repetition needed |
+| GPU memory | Requires >16GB | Fits in 12GB | RTX 3060 compatible |
+| Use case | Long-form text | Short-form text | 1-2 paragraph generation |
 
-**Trade-off:** Uses 7× more compute for ~40-50% better loss (diminishing returns, but worthwhile given available time).
+**Trade-off:** Shorter context (256 vs 1024 tokens) for GPU memory compatibility. Model will excel at short-form text generation.
 
 ---
 
 ## Buffer Time Remaining
 
-- **Training duration:** ~28 hours
+- **Training duration:** ~77 hours (~3.2 days)
 - **Total available:** 144 hours (6 days)
-- **Buffer remaining:** ~116 hours (4.8 days)
+- **Buffer remaining:** ~67 hours (~2.8 days)
 
 This buffer allows for:
 - Unexpected slowdowns or issues

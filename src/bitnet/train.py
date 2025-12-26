@@ -72,6 +72,14 @@ class TwoStageLRScheduler:
         """Get current learning rate without advancing."""
         return self._lr_at_step(self.current_step)
 
+    def state_dict(self) -> dict[str, Any]:
+        """Return scheduler state for checkpointing."""
+        return {"current_step": self.current_step}
+
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        """Load scheduler state from checkpoint."""
+        self.current_step = state_dict["current_step"]
+
 
 class TwoStageWDScheduler:
     """Two-stage weight decay scheduler for BitNet b1.58
@@ -102,6 +110,14 @@ class TwoStageWDScheduler:
             param_group["weight_decay"] = wd
 
         self.current_step += 1
+
+    def state_dict(self) -> dict[str, Any]:
+        """Return scheduler state for checkpointing."""
+        return {"current_step": self.current_step}
+
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        """Load scheduler state from checkpoint."""
+        self.current_step = state_dict["current_step"]
 
 
 def train_step(
