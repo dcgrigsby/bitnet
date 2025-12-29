@@ -8,6 +8,7 @@ LLM training experiments with BitNet 1.58-bit quantization.
 
 ```bash
 just exp-arithmetic     # 5M param arithmetic validation (~30 min)
+just exp-tictactoe      # 12M param tic-tac-toe game learning (~60 min)
 just exp-tinystories    # 12M param natural language (~2 hours)
 just exp-baseline       # 95M param baseline (~3-4 days)
 ```
@@ -18,11 +19,21 @@ just exp-baseline       # 95M param baseline (~3-4 days)
 # Arithmetic experiment with custom steps
 just train-arithmetic --num-steps 5000 --batch-size 64
 
+# Tic-tac-toe with custom config
+just train-tictactoe --num-steps 10000 --batch-size 64
+
 # TinyStories with custom config
 just train-tinystories --num-steps 15000 --seq-len 128 --batch-size 16
 
 # Baseline with custom run-id
 just train-baseline --run-id my_experiment --batch-size 32
+```
+
+### Play Tic-Tac-Toe
+
+```bash
+# Play against trained model
+just play-tictactoe runs/bitnet_12M_tictactoe_<timestamp>/checkpoints/step_015000/checkpoint.pt
 ```
 
 ### Utilities
@@ -47,6 +58,7 @@ just chat runs/bitnet_95M_400k_1766257283/checkpoint_10000.pt
 bitnet/
 ├── experiments/          # Organized by experiment
 │   ├── arithmetic/       # 5M arithmetic validation
+│   ├── tictactoe/        # 12M tic-tac-toe game
 │   ├── tinystories/      # 12M natural language
 │   └── baseline-95m/     # 95M baseline
 ├── scripts/              # Utility scripts
@@ -62,6 +74,13 @@ bitnet/
 - **Dataset**: Synthetic arithmetic (2+3=5)
 - **Runtime**: ~30 minutes
 - **Expected**: Loss drops from ~3.5 to ~0.5
+
+### Tic-Tac-Toe (12M params)
+- **Purpose**: Learn game rules and strategy from data
+- **Dataset**: Random-play synthetic games
+- **Runtime**: ~60 minutes (15k steps)
+- **Expected**: Loss drops from ~3-4 to ~0.5-1.0
+- **Interactive**: Play against trained model!
 
 ### TinyStories (12M params)
 - **Purpose**: Verify natural language learning
