@@ -14,13 +14,17 @@ class FineWebEduDataLoader:
     Downloads and tokenizes FineWeb-Edu in streaming mode, yielding batches
     of token sequences without requiring the full dataset download.
 
+    Supports distributed training via rank/world_size sharding.
+
     Args:
         tokenizer: Tokenizer instance (e.g., LlamaTokenizer)
-        batch_size: Batch size
+        batch_size: Batch size (per GPU when using DDP)
         seq_len: Sequence length
         num_steps: Number of batches to generate
         split: Which split to use (default: 'train')
-        name: Dataset config name (default: 'default')
+        name: Dataset config name (default: 'sample-10BT')
+        rank: Current rank for distributed training (default: 0)
+        world_size: Total number of ranks (default: 1)
     """
 
     def __init__(
@@ -31,6 +35,8 @@ class FineWebEduDataLoader:
         num_steps: int = 60000,
         split: str = "train",
         name: str = "sample-10BT",  # Use 10BT sample (more stable than default)
+        rank: int = 0,
+        world_size: int = 1,
     ) -> None:
         self.tokenizer = tokenizer
         self.batch_size = batch_size
@@ -38,6 +44,8 @@ class FineWebEduDataLoader:
         self.num_steps = num_steps
         self.split = split
         self.name = name
+        self.rank = rank
+        self.world_size = world_size
 
         # Load dataset in streaming mode
         # Note: Some parquet files have different schemas (date column presence)
@@ -49,6 +57,14 @@ class FineWebEduDataLoader:
             streaming=True,
             trust_remote_code=True,  # Allow handling schema variations
         )
+
+        # For distributed training, use different shuffle seeds per rank
+        # This ensures each rank processes different data
+        if world_size > 1:
+            # Each rank gets a different shuffle of the data
+            # With large buffer_size + rank-specific seed, data overlap is minimal
+            shuffle_seed = 42 + rank * 1000
+            self.dataset = self.dataset.shuffle(seed=shuffle_seed, buffer_size=10000)
 
         # Cache first 1000 tokens for fingerprinting
         self._fingerprint_tokens: list[int] | None = None

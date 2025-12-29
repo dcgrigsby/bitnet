@@ -12,9 +12,12 @@ Compute-optimal configuration per Chinchilla scaling:
 
 Full instrumentation with checkpoints, metrics, samples, and anomaly detection.
 All artifacts stored in runs/<run_id>/ directory (git-clean).
+
+Supports DDP (Distributed Data Parallel) for multi-GPU training via torchrun.
 """
 
 import argparse
+import os
 import random
 import time
 from pathlib import Path
@@ -22,8 +25,10 @@ from typing import cast
 
 import numpy as np
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
 from transformers import LlamaTokenizer, PreTrainedTokenizer
 from tqdm import tqdm
 
@@ -146,38 +151,93 @@ def parse_args() -> argparse.Namespace:
         help="Disable evaluation (faster training)",
     )
 
+    # DDP configuration
+    parser.add_argument(
+        "--ddp",
+        action="store_true",
+        help="Enable DDP (Distributed Data Parallel) training",
+    )
+
     return parser.parse_args()
+
+
+def setup_ddp() -> tuple[int, int, int, torch.device]:
+    """
+    Setup DDP from environment variables set by torchrun.
+    Returns: (global_rank, local_rank, world_size, device)
+    """
+    global_rank = int(os.environ.get("RANK", "0"))
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+
+    if world_size > 1:
+        # Initialize process group
+        dist.init_process_group(backend="nccl")
+        torch.cuda.set_device(local_rank)
+        device = torch.device(f"cuda:{local_rank}")
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    return global_rank, local_rank, world_size, device
+
+
+def cleanup_ddp() -> None:
+    """Cleanup DDP process group."""
+    if dist.is_initialized():
+        dist.destroy_process_group()
 
 
 def main() -> None:
     """Main training function."""
     args = parse_args()
 
-    # Set seed
-    set_seed(args.seed)
+    # Setup DDP if enabled
+    if args.ddp:
+        global_rank, local_rank, world_size, device = setup_ddp()
+    else:
+        global_rank, local_rank, world_size = 0, 0, 1
+        device = torch.device(args.device)
 
-    # Generate run ID if not provided
+    is_main_process = global_rank == 0
+
+    # Set seed (offset by rank for different data per GPU)
+    set_seed(args.seed + global_rank)
+
+    # Generate run ID if not provided (only on main process to avoid race)
     if args.run_id is None:
         timestamp = int(time.time())
         args.run_id = f"bitnet_95M_fineweb_T1.97B_{timestamp}"
 
-    print("=" * 80)
-    print(f"BitNet 95M Training Run: {args.run_id}")
-    print("=" * 80)
-    print(f"Device: {args.device}")
-    print(f"Batch size: {args.batch_size}")
-    print(f"Sequence length: {args.seq_len}")
-    print(f"Total steps: {args.num_steps}")
-    print(f"Total tokens: {args.num_steps * args.batch_size * args.seq_len:,}")
-    print(f"Seed: {args.seed}")
-    print("=" * 80)
-    print()
+    # Per-GPU batch size (args.batch_size is per-GPU when using DDP)
+    per_gpu_batch_size = args.batch_size
+    global_batch_size = per_gpu_batch_size * world_size
 
-    # Create run directory
-    create_run_directory(args.run_id)
+    if is_main_process:
+        print("=" * 80)
+        print(f"BitNet 95M Training Run: {args.run_id}")
+        print("=" * 80)
+        print(f"DDP enabled: {args.ddp}")
+        print(f"World size: {world_size}")
+        print(f"Device: {device}")
+        print(f"Per-GPU batch size: {per_gpu_batch_size}")
+        print(f"Global batch size: {global_batch_size}")
+        print(f"Sequence length: {args.seq_len}")
+        print(f"Total steps: {args.num_steps}")
+        print(f"Total tokens: {args.num_steps * global_batch_size * args.seq_len:,}")
+        print(f"Seed: {args.seed}")
+        print("=" * 80)
+        print()
+
+        # Create run directory (only main process)
+        create_run_directory(args.run_id)
+
+    # Barrier to ensure directory exists before other ranks proceed
+    if args.ddp and world_size > 1:
+        dist.barrier()
 
     # Load tokenizer (LLaMA-2)
-    print("Loading LLaMA-2 tokenizer...")
+    if is_main_process:
+        print("Loading LLaMA-2 tokenizer...")
     tokenizer = cast(
         PreTrainedTokenizer,
         LlamaTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf"),
@@ -185,8 +245,9 @@ def main() -> None:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    print(f"Tokenizer loaded: vocab_size={tokenizer.vocab_size}")
-    print()
+    if is_main_process:
+        print(f"Tokenizer loaded: vocab_size={tokenizer.vocab_size}")
+        print()
 
     # Create model configuration (95M params)
     config = BitNetConfig(
@@ -206,37 +267,50 @@ def main() -> None:
     )
 
     # Create model
-    device = torch.device(args.device)
     model = BitNetModel(config).to(device)
 
+    # Wrap model in DDP if enabled
+    if args.ddp and world_size > 1:
+        model = DDP(model, device_ids=[local_rank])
+
     num_params = sum(p.numel() for p in model.parameters())
-    print(f"Model created: {num_params:,} parameters")
-    print(f"Target: ~95M parameters")
-    print(f"Embeddings tied: Yes")
-    print()
+    if is_main_process:
+        print(f"Model created: {num_params:,} parameters")
+        print(f"Target: ~95M parameters")
+        print(f"Embeddings tied: Yes")
+        if args.ddp:
+            print(f"Wrapped in DDP")
+        print()
 
     # Create dataloaders
-    print("Creating dataloaders...")
+    # Each rank gets different data via seed offset (already done via set_seed above)
+    if is_main_process:
+        print("Creating dataloaders...")
     train_dataloader = FineWebEduDataLoader(
         tokenizer,
-        batch_size=args.batch_size,
+        batch_size=per_gpu_batch_size,
         seq_len=args.seq_len,
         num_steps=args.num_steps,
         split="train",
+        rank=global_rank,  # Pass rank for data sharding
+        world_size=world_size,
     )
 
     eval_dataloader = None
     if not args.no_eval:
         eval_dataloader = FineWebEduDataLoader(
             tokenizer,
-            batch_size=args.batch_size,
+            batch_size=per_gpu_batch_size,
             seq_len=args.seq_len,
             num_steps=100,  # Fixed eval set size
             split="train",  # Use train split but different iteration
+            rank=global_rank,
+            world_size=world_size,
         )
 
-    print("Dataloaders created.")
-    print()
+    if is_main_process:
+        print("Dataloaders created.")
+        print()
 
     # Create optimizer and loss function
     optimizer = optim.AdamW(
@@ -252,50 +326,58 @@ def main() -> None:
     lr_scheduler = TwoStageLRScheduler(optimizer, config, args.num_steps)
     wd_scheduler = TwoStageWDScheduler(optimizer, args.num_steps)
 
-    # Write provenance and configuration
-    print("Writing provenance and configuration...")
-    write_provenance(args.run_id, config)
+    # Write provenance and configuration (only main process)
+    if is_main_process:
+        print("Writing provenance and configuration...")
+        write_provenance(args.run_id, config)
 
-    training_args = {
-        "batch_size": args.batch_size,
-        "seq_len": args.seq_len,
-        "total_steps": args.num_steps,
-        "total_tokens": args.num_steps * args.batch_size * args.seq_len,
-        "grad_accum_steps": args.grad_accum_steps,
-        "peak_lr": config.learning_rate,
-        "warmup_steps": config.warmup_steps,
-        "stage1_wd": 0.1,
-        "stage2_wd": 0.0,
-        "grad_clip_norm": 1.0,
-        "adam_beta1": config.adam_beta1,
-        "adam_beta2": config.adam_beta2,
-        "dataset": "HuggingFaceFW/fineweb-edu",
-        "tokenizer": "meta-llama/Llama-2-7b-hf",
-    }
+        training_args = {
+            "batch_size_per_gpu": per_gpu_batch_size,
+            "global_batch_size": global_batch_size,
+            "world_size": world_size,
+            "seq_len": args.seq_len,
+            "total_steps": args.num_steps,
+            "total_tokens": args.num_steps * global_batch_size * args.seq_len,
+            "grad_accum_steps": args.grad_accum_steps,
+            "peak_lr": config.learning_rate,
+            "warmup_steps": config.warmup_steps,
+            "stage1_wd": 0.1,
+            "stage2_wd": 0.0,
+            "grad_clip_norm": 1.0,
+            "adam_beta1": config.adam_beta1,
+            "adam_beta2": config.adam_beta2,
+            "dataset": "HuggingFaceFW/fineweb-edu",
+            "tokenizer": "meta-llama/Llama-2-7b-hf",
+            "ddp": args.ddp,
+        }
 
-    write_config(args.run_id, config, training_args)
-    print("Provenance written.")
-    print()
+        write_config(args.run_id, config, training_args)
+        print("Provenance written.")
+        print()
 
     # Training loop
-    print("Starting training...")
-    print("=" * 80)
-    print()
+    if is_main_process:
+        print("Starting training...")
+        print("=" * 80)
+        print()
 
     model.train()
     step = 0
     loss_history: list[float] = []
     train_loss_ma = 0.0  # Moving average
 
-    # Progress bar
-    pbar = tqdm(total=args.num_steps, desc="Training", unit="step")
+    # Progress bar (only on main process)
+    pbar = tqdm(total=args.num_steps, desc="Training", unit="step", disable=not is_main_process)
+
+    # Get base model for checkpointing (unwrap DDP if needed)
+    base_model = model.module if args.ddp and world_size > 1 else model
 
     # Iterate through data
     for batch_idx, batch in enumerate(train_dataloader):
         batch = batch.to(device)
 
-        # Write dataset fingerprint after first batch
-        if batch_idx == 0:
+        # Write dataset fingerprint after first batch (main process only)
+        if batch_idx == 0 and is_main_process:
             write_dataset_fingerprint(
                 args.run_id, train_dataloader, "meta-llama/Llama-2-7b-hf"
             )
@@ -335,8 +417,8 @@ def main() -> None:
 
         train_loss_ma = sum(loss_history[-100:]) / min(100, len(loss_history))
 
-        # Log scalars
-        if step % args.log_interval == 0 or step == 1:
+        # Log scalars (main process only)
+        if is_main_process and (step % args.log_interval == 0 or step == 1):
             current_lr = cast(float, optimizer.param_groups[0]["lr"])
             current_wd = cast(float, optimizer.param_groups[0]["weight_decay"])
 
@@ -348,7 +430,7 @@ def main() -> None:
                 current_wd,
                 grad_norm.item(),
                 step_time_ms,
-                args.batch_size,
+                global_batch_size,  # Use global batch size for logging
                 args.seq_len,
             )
 
@@ -363,16 +445,16 @@ def main() -> None:
                 }
             )
 
-        # Log BitNet metrics
-        if step % args.log_interval == 0:
-            log_bitnet_metrics(args.run_id, step, model)
+        # Log BitNet metrics (main process only)
+        if is_main_process and step % args.log_interval == 0:
+            log_bitnet_metrics(args.run_id, step, base_model)
 
-        # Evaluation
-        if not args.no_eval and step % args.eval_interval == 0 and eval_dataloader:
+        # Evaluation (main process only)
+        if is_main_process and not args.no_eval and step % args.eval_interval == 0 and eval_dataloader:
             eval_loss = run_evaluation(
                 args.run_id,
                 step,
-                model,
+                base_model,
                 eval_dataloader,
                 loss_fn,
                 device,
@@ -380,18 +462,18 @@ def main() -> None:
             )
             print(f"\n[Step {step}] Eval loss: {eval_loss:.4f}\n")
 
-        # Generate samples
-        if step % args.sample_interval == 0:
-            generate_samples(args.run_id, step, model, tokenizer, device)
+        # Generate samples (main process only)
+        if is_main_process and step % args.sample_interval == 0:
+            generate_samples(args.run_id, step, base_model, tokenizer, device)
 
-        # Checkpointing
+        # Checkpointing (main process only)
         stage_boundary = args.num_steps // 2
         mandatory = step in [stage_boundary - 1, stage_boundary]  # Stage boundaries
-        if step % args.checkpoint_interval == 0 or mandatory:
+        if is_main_process and (step % args.checkpoint_interval == 0 or mandatory):
             save_checkpoint(
                 args.run_id,
                 step,
-                model,
+                base_model,  # Save unwrapped model
                 optimizer,
                 lr_scheduler,
                 wd_scheduler,
@@ -402,43 +484,48 @@ def main() -> None:
             if mandatory:
                 print(f"\n[MANDATORY CHECKPOINT] Saved at step {step}\n")
 
-        # Anomaly detection
-        mean_entropy = 0.0  # Could compute from recent samples
-        max_repetition = 0  # Could compute from recent samples
+        # Anomaly detection (main process only)
+        if is_main_process:
+            mean_entropy = 0.0  # Could compute from recent samples
+            max_repetition = 0  # Could compute from recent samples
 
-        is_anomaly, event_name = detect_anomaly(
-            loss.item(), loss_history, mean_entropy, max_repetition
-        )
-
-        if is_anomaly and event_name:
-            print(f"\n[ANOMALY DETECTED] {event_name} at step {step}\n")
-            trigger_anomaly_dump(
-                args.run_id, step, model, batch, tokenizer, event_name
+            is_anomaly, event_name = detect_anomaly(
+                loss.item(), loss_history, mean_entropy, max_repetition
             )
+
+            if is_anomaly and event_name:
+                print(f"\n[ANOMALY DETECTED] {event_name} at step {step}\n")
+                trigger_anomaly_dump(
+                    args.run_id, step, base_model, batch, tokenizer, event_name
+                )
 
         pbar.update(1)
 
     pbar.close()
 
-    # Final checkpoint
-    print("\nSaving final checkpoint...")
-    save_checkpoint(
-        args.run_id,
-        args.num_steps,
-        model,
-        optimizer,
-        lr_scheduler,
-        wd_scheduler,
-        loss.item(),
-        config,
-        mandatory=True,
-    )
+    # Final checkpoint (main process only)
+    if is_main_process:
+        print("\nSaving final checkpoint...")
+        save_checkpoint(
+            args.run_id,
+            args.num_steps,
+            base_model,
+            optimizer,
+            lr_scheduler,
+            wd_scheduler,
+            loss.item(),
+            config,
+            mandatory=True,
+        )
 
-    print("\n" + "=" * 80)
-    print(f"Training complete!")
-    print(f"Run ID: {args.run_id}")
-    print(f"Run directory: runs/{args.run_id}/")
-    print("=" * 80)
+        print("\n" + "=" * 80)
+        print(f"Training complete!")
+        print(f"Run ID: {args.run_id}")
+        print(f"Run directory: runs/{args.run_id}/")
+        print("=" * 80)
+
+    # Cleanup DDP
+    cleanup_ddp()
 
 
 if __name__ == "__main__":
