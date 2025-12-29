@@ -10,3 +10,8 @@ build/
 
 # Training run artifacts (debug, checkpoints, logs, samples)
 runs/
+
+# Generated artifacts
+training_loss.png
+*_tokenizer.json
+typescript

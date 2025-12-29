@@ -7,6 +7,9 @@
 
 set -e  # Exit on error
 
+# Change to project root
+cd "$(dirname "$0")/../.."
+
 echo "========================================"
 echo "BitNet Arithmetic Validation Experiment"
 echo "========================================"
@@ -47,7 +50,7 @@ echo ""
 echo "Starting training..."
 echo ""
 
-python3 train_bitnet_arithmetic.py \
+python3 experiments/arithmetic/train_bitnet_arithmetic.py \
     --num-steps 10000 \
     --batch-size 32 \
     --seq-len 64 \
@@ -64,5 +67,5 @@ echo "  - Loss curve should drop from ~3.5 to ~0.5"
 echo "  - Final test should show correct arithmetic"
 echo ""
 echo "Next step:"
-echo "  ./start_tinystories_experiment.sh"
+echo "  experiments/tinystories/start_tinystories_experiment.sh"
 echo "========================================"

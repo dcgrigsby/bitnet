@@ -4,6 +4,11 @@
 # Total tokens: 13.1B
 # Checkpoints: Every 10k steps (40 total)
 
+set -e  # Exit on error
+
+# Change to project root
+cd "$(dirname "$0")/../.."
+
 echo "========================================="
 echo "BitNet 95M - 400k Step Training"
 echo "========================================="
@@ -35,7 +40,7 @@ RUN_ID="bitnet_95M_400k_${TIMESTAMP}"
 echo "Run ID: ${RUN_ID}"
 echo ""
 echo "Monitor progress with:"
-echo "  python check_training_status.py runs/${RUN_ID}"
+echo "  python scripts/check_training_status.py runs/${RUN_ID}"
 echo ""
 echo "Starting in 5 seconds... (Ctrl+C to cancel)"
 sleep 5
@@ -43,7 +48,7 @@ sleep 5
 # Launch training optimized for 12GB GPU (RTX 3060)
 # Batch size = 16 * 2 grad_accum = 32 effective batch size
 # Best balance of speed and memory for 400k steps in ~4.6 days
-python train_bitnet_95m.py \
+python experiments/baseline-95m/train_bitnet_95m.py \
     --run-id "${RUN_ID}" \
     --batch-size 16 \
     --seq-len 256 \

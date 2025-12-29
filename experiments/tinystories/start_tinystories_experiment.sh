@@ -7,6 +7,9 @@
 
 set -e  # Exit on error
 
+# Change to project root
+cd "$(dirname "$0")/../.."
+
 echo "==========================================="
 echo "BitNet TinyStories Validation Experiment"
 echo "==========================================="
@@ -51,7 +54,7 @@ echo "✓ All dependencies found"
 echo ""
 
 # Step 1: Train tokenizer (if not already present)
-if [ -f "tinystories_tokenizer.json" ]; then
+if [ -f "experiments/tinystories/tinystories_tokenizer.json" ]; then
     echo "✓ Tokenizer already exists: tinystories_tokenizer.json"
     echo ""
 else
@@ -59,10 +62,10 @@ else
     echo "Expected time: ~10 minutes"
     echo ""
 
-    python3 train_tinystories_tokenizer.py \
+    python3 experiments/tinystories/train_tinystories_tokenizer.py \
         --vocab-size 2048 \
         --num-samples 100000 \
-        --output tinystories_tokenizer.json
+        --output experiments/tinystories/tinystories_tokenizer.json
 
     echo ""
     echo "✓ Tokenizer training complete"
@@ -74,8 +77,8 @@ echo "Step 2/2: Training model..."
 echo "Expected time: ~1.5 hours"
 echo ""
 
-python3 train_bitnet_tiny.py \
-    --tokenizer tinystories_tokenizer.json \
+python3 experiments/tinystories/train_bitnet_tiny.py \
+    --tokenizer experiments/tinystories/tinystories_tokenizer.json \
     --num-steps 30000 \
     --batch-size 32 \
     --seq-len 256 \

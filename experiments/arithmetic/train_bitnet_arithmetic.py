@@ -160,14 +160,17 @@ def test_arithmetic(
 
             # Generate answer (should be 1-3 digits)
             generated = input_ids.clone()
+            space_count = 0
             for _ in range(10):  # Max 10 tokens for answer
                 logits = model(generated)
                 next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)
                 generated = torch.cat([generated, next_token], dim=1)
 
-                # Stop at space (end of number)
+                # Stop at second space (after answer digits)
                 if next_token.item() == tokenizer.char_to_id[" "]:
-                    break
+                    space_count += 1
+                    if space_count == 2:
+                        break
 
             full_text = tokenizer.decode(generated[0].tolist())
             results.append({
