@@ -1,118 +1,268 @@
-# BitNet Training
+# BitNet b1.58 Training Implementation
 
-LLM training experiments with BitNet 1.58-bit quantization.
+A PyTorch implementation of **BitNet b1.58** - a transformer-based architecture with ternary weight quantization (1.58 bits) for efficient neural network training.
+
+This is an **implementation of the training pipeline** for BitNet, based on the [BitNet: Scaling Bitwise Operations for Efficient Transformer Inference and Learning](https://arxiv.org/abs/2402.18029) paper (Ma et al., 2024).
+
+**Current status**: Training infrastructure is complete and working. Inference capabilities are available for model evaluation and testing (e.g., chat, tic-tac-toe gameplay), but the optimized BitNet kernels for efficient inference are not yet implemented.
+
+## Requirements
+
+- **Python 3.12** (required by the project)
+- **CUDA-capable GPU** (strongly recommended for practical training)
+- **Disk space**: 10-50GB for experiments depending on which ones you run
+- **Memory**: 8GB+ VRAM for small experiments, 24GB+ for baseline training
+
+## Installation
+
+### Step 1: Install Direnv (Optional but Recommended)
+
+[direnv](https://direnv.net/) automatically loads your Python virtual environment when you `cd` into the project.
+
+**macOS:**
+```bash
+brew install direnv
+```
+
+**Linux:**
+```bash
+# Follow https://direnv.net/docs/installation.html
+```
+
+Then add direnv to your shell profile and allow it in this repo:
+```bash
+direnv allow
+```
+
+### Step 2: Set Up Python Environment with uv
+
+This project uses [uv](https://docs.astral.sh/uv/) - a fast Python package manager.
+
+**Install uv:**
+```bash
+# macOS
+brew install uv
+
+# Or with pip/pipx
+pip install uv
+```
+
+**Create virtual environment:**
+```bash
+uv venv
+```
+
+If using direnv, this activates automatically. Otherwise:
+```bash
+source .venv/bin/activate
+```
+
+**Install dependencies:**
+```bash
+uv sync
+```
+
+This installs PyTorch and all required packages for training.
+
+## Using `just` for Commands
+
+This project uses [just](https://github.com/casey/just) - a command runner similar to `make` but simpler.
+
+**Install just:**
+```bash
+# macOS
+brew install just
+
+# Linux: https://github.com/casey/just?tab=readme-ov-file#installation
+```
+
+**View all available commands:**
+```bash
+just
+```
+
+**Run a command:**
+```bash
+just <command-name> [args]
+```
+
+The `justfile` handles calling `uv run` automatically, so you don't need to activate your virtualenv or type that prefix each time.
 
 ## Quick Start
 
-### Run Full Experiments (with default settings)
+### Run a Quick Test
+```bash
+just train-simple 100
+```
+Trains a tiny model for 100 steps to verify everything is working (~1 minute).
+
+### Run Full Experiments
+
+Each experiment comes with sensible defaults and produces trained checkpoints:
 
 ```bash
-just exp-arithmetic     # 5M param arithmetic validation (~30 min)
-just exp-tictactoe      # 12M param tic-tac-toe game learning (~60 min)
-just exp-tinystories    # 12M param natural language (~2 hours)
-just exp-baseline       # 95M param baseline (~3-4 days)
+just exp-arithmetic     # 5M params, arithmetic task (~30 min)
+just exp-tictactoe      # 12M params, game learning (~60 min)
+just exp-tinystories    # 12M params, natural language (~2 hours)
+just exp-baseline       # 95M params, FineWeb-Edu dataset (~3-4 days)
 ```
 
 ### Run Training with Custom Arguments
 
 ```bash
-# Arithmetic experiment with custom steps
+# Arithmetic with custom steps and batch size
 just train-arithmetic --num-steps 5000 --batch-size 64
 
 # Tic-tac-toe with custom config
 just train-tictactoe --num-steps 10000 --batch-size 64
 
-# TinyStories with custom config
+# TinyStories with custom settings
 just train-tinystories --num-steps 15000 --seq-len 128 --batch-size 16
 
-# Baseline with custom run-id
+# Baseline with custom run ID
 just train-baseline --run-id my_experiment --batch-size 32
+```
+
+See experiment-specific configs in `experiments/*/TRAINING_*_CONFIG.md` for all available options.
+
+## Using Trained Models
+
+### Chat with a Model
+
+After training, chat interactively with your trained model:
+
+```bash
+just chat runs/bitnet_95M_400k_<timestamp>/checkpoint_10000.pt
 ```
 
 ### Play Tic-Tac-Toe
 
+If you trained the tic-tac-toe experiment, play against your trained model:
+
 ```bash
-# Play against trained model
 just play-tictactoe runs/bitnet_12M_tictactoe_<timestamp>/checkpoints/step_015000/checkpoint.pt
 ```
 
-### Utilities
+### Monitor Training Progress
 
 ```bash
-# Plot training loss
+# Plot training loss curve
 just plot-loss bitnet_5M_arithmetic_1766885392
 
-# Check training status
+# Check training status (once)
 just check-status bitnet_5M_arithmetic_1766885392
 
 # Watch training status (updates every 10s)
 just check-status bitnet_5M_arithmetic_1766885392 --watch
-
-# Chat with trained model
-just chat runs/bitnet_95M_400k_1766257283/checkpoint_10000.pt
 ```
+
+## Experiments
+
+Each experiment demonstrates different aspects of BitNet training:
+
+### Arithmetic (5M parameters)
+
+- **Purpose**: Quick validation that BitNet quantization works correctly
+- **Dataset**: Synthetic arithmetic problems (e.g., `2+3=5`)
+- **Typical runtime**: ~30 minutes on modern GPU
+- **Expected loss**: Drops from ~3.5 to ~0.5
+- **Use case**: Verify your setup is working before trying larger experiments
+
+### Tic-Tac-Toe (12M parameters)
+
+- **Purpose**: Learn discrete game rules and strategy from synthetic data
+- **Dataset**: Random-play tic-tac-toe games
+- **Typical runtime**: ~60 minutes for 15k steps
+- **Expected loss**: Drops from ~3-4 to ~0.5-1.0
+- **Interactive**: Play against trained models!
+- **Use case**: Proof that BitNet learns structured rules, play around with trained models
+
+### TinyStories (12M parameters)
+
+- **Purpose**: Validate natural language learning with real data
+- **Dataset**: [TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories) - simple children's stories
+- **Typical runtime**: ~2 hours total (10 min tokenizer + 1.5 hrs training)
+- **Expected loss**: Drops from ~7 to ~1.5-2.0
+- **Use case**: Natural language baseline, chat with trained models
+
+### Baseline (95M parameters)
+
+- **Purpose**: Full-scale training baseline for research and comparison
+- **Dataset**: [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) subset
+- **Typical runtime**: ~77 hours (400k steps) on single A100
+- **Config**: 16 batch size, 256 seq len, 2 gradient accumulation
+- **Use case**: Research-grade baseline, infrastructure stress testing
 
 ## Project Structure
 
 ```
 bitnet/
-├── experiments/          # Organized by experiment
-│   ├── arithmetic/       # 5M arithmetic validation
-│   ├── tictactoe/        # 12M tic-tac-toe game
-│   ├── tinystories/      # 12M natural language
-│   └── baseline-95m/     # 95M baseline
-├── scripts/              # Utility scripts
-├── docs/                 # Documentation & configs
-├── runs/                 # Training outputs
-└── src/bitnet/          # Core BitNet implementation
+├── src/bitnet/              # Core BitNet implementation
+│   ├── model.py            # BitNet architecture
+│   ├── quantization.py     # Ternary quantization
+│   └── ...
+├── experiments/            # Self-contained experiment directories
+│   ├── arithmetic/         # Arithmetic validation experiment
+│   ├── tictactoe/         # Game learning experiment
+│   ├── tinystories/       # Natural language experiment
+│   └── baseline-95m/      # Large-scale baseline
+├── scripts/               # Utility scripts
+│   ├── plot_loss.py      # Visualize training curves
+│   ├── check_training_status.py  # Monitor progress
+│   └── chat_bitnet.py    # Interactive chat with models
+├── docs/                 # Additional documentation
+├── runs/                 # Training outputs (created during training)
+│   └── bitnet_<desc>_<timestamp>/
+│       ├── checkpoints/
+│       ├── config.yaml
+│       └── logs/
+├── tests/               # Test suite
+├── justfile            # Command definitions
+├── pyproject.toml      # Project metadata and dependencies
+├── .envrc              # Direnv configuration
+└── README.md           # This file
 ```
-
-## Experiments
-
-### Arithmetic (5M params)
-- **Purpose**: Verify BitNet quantization works
-- **Dataset**: Synthetic arithmetic (2+3=5)
-- **Runtime**: ~30 minutes
-- **Expected**: Loss drops from ~3.5 to ~0.5
-
-### Tic-Tac-Toe (12M params)
-- **Purpose**: Learn game rules and strategy from data
-- **Dataset**: Random-play synthetic games
-- **Runtime**: ~60 minutes (15k steps)
-- **Expected**: Loss drops from ~3-4 to ~0.5-1.0
-- **Interactive**: Play against trained model!
-
-### TinyStories (12M params)
-- **Purpose**: Verify natural language learning
-- **Dataset**: Simple children's stories
-- **Runtime**: ~2 hours (10 min tokenizer + 1.5 hrs training)
-- **Expected**: Loss drops from ~7 to ~1.5-2.0
-
-### Baseline 95M
-- **Purpose**: Full-scale baseline training
-- **Dataset**: FineWeb-Edu
-- **Runtime**: ~77 hours (400k steps)
-- **Config**: 16 batch size, 256 seq len, 2 grad accum
 
 ## Development
 
+### Run Tests
+
 ```bash
-# Run tests
+# Run all tests
 just test
 
-# Run specific test
+# Run specific test file
 just test tests/test_model.py
 
-# Simple training test
-just train-simple 100
+# Run tests matching a pattern
+just test -k "quantization"
 ```
+
+## Technology Stack
+
+- **[PyTorch](https://pytorch.org/)**: Deep learning framework
+- **[Transformers](https://huggingface.co/transformers/)**: Transformer utilities and pretrained models
+- **[Datasets](https://huggingface.co/datasets/)**: HuggingFace datasets integration
+- **[uv](https://docs.astral.sh/uv/)**: Python package management
+- **[just](https://github.com/casey/just)**: Command runner
+- **[direnv](https://direnv.net/)**: Automatic environment activation (optional)
+
+## Training Tips
+
+- **Start small**: Run `just train-simple 100` first to verify your setup
+- **Monitor GPU**: Watch `nvidia-smi` to verify training is using your GPU
+- **Check checkpoints**: Training saves checkpoints in `runs/` - you can resume from these or use them for inference
+- **Customize hyperparameters**: Each experiment's training script accepts command-line arguments for batch size, learning rate, etc.
+- **FineWeb-Edu dataset**: The baseline experiment will download ~20GB of data on first run
 
 ## Documentation
 
-- `docs/BITNET_TRAINING_COST_CALCULATOR.md` - Training cost analysis
-- `docs/TRAINING_SCRIPTS_README.md` - Training script details
-- `experiments/TINY_EXPERIMENTS_README.md` - Experiment overview
-- `experiments/*/TRAINING_*_CONFIG.md` - Experiment-specific configs
+For more detailed information:
+
+- `docs/BITNET_TRAINING_COST_CALCULATOR.md` - Analyze training costs and timing
+- `docs/TRAINING_SCRIPTS_README.md` - Detailed training script documentation
+- `experiments/TINY_EXPERIMENTS_README.md` - Experiment design details
+- `experiments/*/TRAINING_*_CONFIG.md` - Experiment-specific configuration options
 
 ## License
 
@@ -124,7 +274,7 @@ Contributions are welcome! Please feel free to open issues or submit pull reques
 
 ## Citation
 
-If you use this project in your research, please cite it appropriately. BitNet 1.58-bit quantization research is based on the following:
+If you use this project in your research, please cite the BitNet paper:
 
 ```bibtex
 @article{ma2024bitnet,
@@ -137,4 +287,4 @@ If you use this project in your research, please cite it appropriately. BitNet 1
 
 ## Acknowledgments
 
-Built with [PyTorch](https://pytorch.org/) and inspired by the BitNet research paper on efficient neural network quantization.
+Built with [PyTorch](https://pytorch.org/) and based on the BitNet research paper on efficient neural network quantization.
