@@ -76,28 +76,24 @@ Each experiment demonstrates different aspects of BitNet training:
 
 ### Arithmetic (5M parameters)
 
-- **Purpose**: Quick validation that BitNet quantization works correctly
 - **Dataset**: Synthetic arithmetic problems (e.g., `2+3=5`)
-- **Typical runtime**: ~30 minutes on modern GPU
+- **Typical runtime**: ~30 minutes on GPU
 - **Expected loss**: Drops from ~3.5 to ~0.5
-- **Use case**: Verify your setup is working before trying larger experiments
+- **Use case**: Quick validation of quantization; verify your setup works before larger experiments
 
 ### TinyStories (12M parameters)
 
-- **Purpose**: Validate natural language learning with real data
 - **Dataset**: [TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories) - simple children's stories
 - **Typical runtime**: ~2 hours total (10 min tokenizer + 1.5 hrs training)
 - **Expected loss**: Drops from ~7 to ~1.5-2.0
-- **Use case**: Natural language baseline, chat with trained models
+- **Use case**: Natural language baseline; chat with trained models
 
 ### Baseline (95M parameters)
 
-- **Purpose**: Full-scale training baseline on available hardware
 - **Dataset**: [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) subset
-- **Typical runtime**: ~77 hours (400k steps) on RTX3060
-- **Config**: 16 batch size, 256 seq len, 2 gradient accumulation
-- **Use case**: Largest model that could be trained on on my RTX3060. 
-- **Note:**: For practical use, needs >1B parameters, optimally 3B-7B. 
+- **Typical runtime**: ~77 hours (400k steps) on RTX 3060
+- **Expected loss**: Drops from ~7 to ~2.0-2.5
+- **Use case**: Largest model that fits on RTX 3060; practical use requires >1B parameters (3B-7B optimal) 
 
 ## Project Structure
 
