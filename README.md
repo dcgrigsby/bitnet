@@ -8,7 +8,7 @@ This is an **implementation of the training pipeline** for BitNet, based on the 
 
 ## Installation
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management and [just](https://github.com/casey/just) as a command runner. We recommend installing both, and optionally [direnv](https://direnv.net/) for automatic environment activation.
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Optionally, [direnv](https://direnv.net/) provides automatic environment activation.
 
 Create a virtual environment and install dependencies:
 ```bash
@@ -19,12 +19,7 @@ uv sync
 
 ## Commands
 
-Run `just` to see all available commands:
-```bash
-just
-```
-
-Commands are defined in the `justfile` and executed via `uv run`, so you don't need to manually manage the virtualenv.
+This project uses [just](https://github.com/casey/just) for command definitions. Run `just` to see available commands, or check the `justfile` for details.
 
 ## Quick Start
 
