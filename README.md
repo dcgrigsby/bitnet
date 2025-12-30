@@ -35,7 +35,6 @@ Each experiment comes with sensible defaults and produces trained checkpoints:
 
 ```bash
 just exp-arithmetic     # 5M params, arithmetic task (~30 min)
-just exp-tictactoe      # 12M params, game learning (~60 min)
 just exp-tinystories    # 12M params, natural language (~2 hours)
 just exp-baseline       # 95M params, FineWeb-Edu dataset (~3-4 days)
 ```
@@ -45,9 +44,6 @@ just exp-baseline       # 95M params, FineWeb-Edu dataset (~3-4 days)
 ```bash
 # Arithmetic with custom steps and batch size
 just train-arithmetic --num-steps 5000 --batch-size 64
-
-# Tic-tac-toe with custom config
-just train-tictactoe --num-steps 10000 --batch-size 64
 
 # TinyStories with custom settings
 just train-tinystories --num-steps 15000 --seq-len 128 --batch-size 16
@@ -66,14 +62,6 @@ After training, chat interactively with your trained model:
 
 ```bash
 just chat runs/bitnet_95M_400k_<timestamp>/checkpoint_10000.pt
-```
-
-### Play Tic-Tac-Toe
-
-If you trained the tic-tac-toe experiment, play against your trained model:
-
-```bash
-just play-tictactoe runs/bitnet_12M_tictactoe_<timestamp>/checkpoints/step_015000/checkpoint.pt
 ```
 
 ### Monitor Training Progress
@@ -101,15 +89,6 @@ Each experiment demonstrates different aspects of BitNet training:
 - **Expected loss**: Drops from ~3.5 to ~0.5
 - **Use case**: Verify your setup is working before trying larger experiments
 
-### Tic-Tac-Toe (12M parameters)
-
-- **Purpose**: Learn discrete game rules and strategy from synthetic data
-- **Dataset**: Random-play tic-tac-toe games
-- **Typical runtime**: ~60 minutes for 15k steps
-- **Expected loss**: Drops from ~3-4 to ~0.5-1.0
-- **Interactive**: Play against trained models!
-- **Use case**: Proof that BitNet learns structured rules, play around with trained models
-
 ### TinyStories (12M parameters)
 
 - **Purpose**: Validate natural language learning with real data
@@ -136,7 +115,6 @@ bitnet/
 │   └── ...
 ├── experiments/            # Self-contained experiment directories
 │   ├── arithmetic/         # Arithmetic validation experiment
-│   ├── tictactoe/         # Game learning experiment
 │   ├── tinystories/       # Natural language experiment
 │   └── baseline-95m/      # Large-scale baseline
 ├── scripts/               # Utility scripts

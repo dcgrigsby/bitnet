@@ -17,9 +17,6 @@ exp-tinystories:
 exp-baseline:
     @bash experiments/baseline-95m/start_training_400k.sh
 
-exp-tictactoe:
-    @bash experiments/tictactoe/start_tictactoe_experiment.sh
-
 # Direct training - Run training scripts with custom arguments
 train-arithmetic *args:
     uv run python experiments/arithmetic/train_bitnet_arithmetic.py {{args}}
@@ -29,13 +26,6 @@ train-tinystories *args:
 
 train-baseline *args:
     uv run python experiments/baseline-95m/train_bitnet_95m.py {{args}}
-
-train-tictactoe *args:
-    uv run python experiments/tictactoe/train_bitnet_tictactoe.py {{args}}
-
-# Game play
-play-tictactoe checkpoint_path:
-    uv run python experiments/tictactoe/play_tictactoe.py {{checkpoint_path}}
 
 # Utilities
 plot-loss run_id:
