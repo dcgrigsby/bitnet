@@ -36,17 +36,10 @@ just exp-tinystories    # 12M params, natural language (~2 hours)
 just exp-baseline       # 95M params, FineWeb-Edu dataset (~3-4 days)
 ```
 
-### Run Training with Custom Arguments
+For custom training arguments, run the Python scripts directly:
 
 ```bash
-# Arithmetic with custom steps and batch size
-just train-arithmetic --num-steps 5000 --batch-size 64
-
-# TinyStories with custom settings
-just train-tinystories --num-steps 15000 --seq-len 128 --batch-size 16
-
-# Baseline with custom run ID
-just train-baseline --run-id my_experiment --batch-size 32
+uv run python experiments/arithmetic/train_bitnet_arithmetic.py --num-steps 5000 --batch-size 64
 ```
 
 See experiment-specific configs in `experiments/*/TRAINING_*_CONFIG.md` for all available options.
@@ -151,7 +144,7 @@ just test -k "quantization"
 - **Start small**: Run `just exp-arithmetic` first to verify your setup works
 - **Monitor training**: Use `just check-status <run_id>` or `just check-status <run_id> --watch` to track progress
 - **Check checkpoints**: Training saves checkpoints in `runs/` - you can resume from these or use them for inference
-- **Customize hyperparameters**: Each experiment's training script accepts command-line arguments for batch size, learning rate, etc.
+- **Customize hyperparameters**: Run training scripts directly with `uv run python` to pass custom arguments for batch size, learning rate, etc.
 - **FineWeb-Edu dataset**: The baseline experiment will download ~20GB of data on first run
 
 ## Documentation

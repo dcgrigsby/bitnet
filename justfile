@@ -14,16 +14,6 @@ exp-tinystories:
 exp-baseline:
     @bash experiments/baseline-95m/start_training_400k.sh
 
-# Direct training - Run training scripts with custom arguments
-train-arithmetic *args:
-    uv run python experiments/arithmetic/train_bitnet_arithmetic.py {{args}}
-
-train-tinystories *args:
-    uv run python experiments/tinystories/train_bitnet_tiny.py {{args}}
-
-train-baseline *args:
-    uv run python experiments/baseline-95m/train_bitnet_95m.py {{args}}
-
 # Utilities
 plot-loss run_id:
     uv run python scripts/plot_loss.py {{run_id}}
