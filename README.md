@@ -101,7 +101,7 @@ Each experiment demonstrates different aspects of BitNet training:
 
 - **Purpose**: Full-scale training baseline on available hardware
 - **Dataset**: [FineWeb-Edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) subset
-- **Typical runtime**: ~77 hours (400k steps) on single A100
+- **Typical runtime**: ~77 hours (400k steps) on RTX3060
 - **Config**: 16 batch size, 256 seq len, 2 gradient accumulation
 - **Note**: 95M is the largest model feasible on RTX3060. For practical use, BitNet likely needs >1B parameters, with optimal range 3B-7B. Scale up based on your hardware capabilities.
 
