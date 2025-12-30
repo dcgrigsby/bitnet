@@ -16,7 +16,7 @@ exp-baseline:
 
 # Utilities
 plot-loss run_id:
-    uv run python scripts/plot_loss.py {{run_id}}
+    uv run python scripts/plot_loss.py runs/{{run_id}}
 
 check-status run_id *args:
     uv run python scripts/check_training_status.py runs/{{run_id}} {{args}}

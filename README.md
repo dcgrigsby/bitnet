@@ -58,10 +58,10 @@ just chat runs/bitnet_95M_400k_<timestamp>/checkpoint_10000.pt
 
 ```bash
 # Plot training loss curve
-just plot-loss bitnet_5M_arithmetic_1766885392
+just plot-loss bitnet_5M_arithmetic
 
 # Check training status
-just check-status bitnet_5M_arithmetic_1766885392
+just check-status bitnet_5M_arithmetic
 ```
 
 ## Experiments
