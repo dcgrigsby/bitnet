@@ -152,7 +152,7 @@ just test -k "quantization"
 ## Training Tips
 
 - **Start small**: Run `just train-simple 100` first to verify your setup
-- **Monitor GPU**: Watch `nvidia-smi` to verify training is using your GPU
+- **Monitor training**: Use `just check-status <run_id>` or `just check-status <run_id> --watch` to track progress
 - **Check checkpoints**: Training saves checkpoints in `runs/` - you can resume from these or use them for inference
 - **Customize hyperparameters**: Each experiment's training script accepts command-line arguments for batch size, learning rate, etc.
 - **FineWeb-Edu dataset**: The baseline experiment will download ~20GB of data on first run
