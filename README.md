@@ -60,11 +60,8 @@ just chat runs/bitnet_95M_400k_<timestamp>/checkpoint_10000.pt
 # Plot training loss curve
 just plot-loss bitnet_5M_arithmetic_1766885392
 
-# Check training status (once)
+# Check training status
 just check-status bitnet_5M_arithmetic_1766885392
-
-# Watch training status (updates every 10s)
-just check-status bitnet_5M_arithmetic_1766885392 --watch
 ```
 
 ## Experiments
@@ -142,7 +139,7 @@ just test -k "quantization"
 ## Training Tips
 
 - **Start small**: Run `just exp-arithmetic` first to verify your setup works
-- **Monitor training**: Use `just check-status <run_id>` or `just check-status <run_id> --watch` to track progress
+- **Monitor training**: Use `just check-status <run_id>` to track progress
 - **Check checkpoints**: Training saves checkpoints in `runs/` - you can resume from these or use them for inference
 - **Customize hyperparameters**: Run training scripts directly with `uv run python` to pass custom arguments for batch size, learning rate, etc.
 - **FineWeb-Edu dataset**: The baseline experiment will download ~20GB of data on first run
