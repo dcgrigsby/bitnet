@@ -239,10 +239,20 @@ def find_latest_checkpoint() -> Path:
         print("Please train a model first or specify --checkpoint")
         sys.exit(1)
 
-    # Look for the known run directory
-    run_dir = runs_dir / "bitnet_95M_400k_1766257283"
+    # Find the most recently modified run directory
+    run_dirs = sorted(
+        [d for d in runs_dir.iterdir() if d.is_dir()],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True
+    )
 
-    if run_dir.exists():
+    if not run_dirs:
+        print("Error: No run directories found in runs/")
+        print("Please train a model first or specify --checkpoint")
+        sys.exit(1)
+
+    # Search each run directory for checkpoints
+    for run_dir in run_dirs:
         checkpoints_dir = run_dir / "checkpoints"
         if checkpoints_dir.exists():
             # Find latest step
@@ -250,9 +260,10 @@ def find_latest_checkpoint() -> Path:
             if step_dirs:
                 checkpoint_file = step_dirs[0] / "checkpoint.pt"
                 if checkpoint_file.exists():
+                    print(f"Using checkpoint from {run_dir.name}")
                     return checkpoint_file
 
-    print("Error: Could not find checkpoint automatically.")
+    print("Error: Could not find any checkpoints in runs/")
     print("Please specify checkpoint path with --checkpoint")
     sys.exit(1)
 

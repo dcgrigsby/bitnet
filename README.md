@@ -1,10 +1,10 @@
 # BitNet b1.58 Training Implementation
 
-A PyTorch implementation of **BitNet b1.58** - a transformer-based architecture with ternary weight quantization (1.58 bits) that runs faster on CPUs. By quantizing weights to {-1, 0, 1}, BitNet replaces expensive matrix multiplications with simple addition operations, reducing computation.
+A PyTorch implementation of **BitNet b1.58** - a transformer-based architecture with ternary weight quantization (1.58 bits) optimized for CPU inference. By quantizing weights to {-1, 0, 1}, BitNet replaces expensive matrix multiplications with simple addition operations, reducing computation.
 
 This is an **implementation of the training pipeline** for BitNet, based on the [BitNet: Scaling Bitwise Operations for Efficient Transformer Inference and Learning](https://arxiv.org/abs/2310.11453) paper (Ma et al., 2023).
 
-**Current status**: Training infrastructure is complete and working. Inference capabilities are available for model evaluation and testing (e.g., chat, tic-tac-toe gameplay), but the optimized BitNet kernels for efficient inference are not yet implemented.
+**Current status**: Training infrastructure is complete and working. Inference capabilities are available for model evaluation and testing (e.g., chat, loss monitoring), but the optimized BitNet kernels for efficient inference are not yet implemented.
 
 ## Installation
 
@@ -48,10 +48,16 @@ See experiment-specific configs in `experiments/*/TRAINING_*_CONFIG.md` for all 
 
 ### Chat with a Model
 
-After training, chat interactively with your trained model:
+After training, chat interactively with the latest trained model:
 
 ```bash
-just chat runs/bitnet_95M_400k_<timestamp>/checkpoint_10000.pt
+just chat
+```
+
+Or specify a checkpoint explicitly:
+
+```bash
+just chat --checkpoint runs/bitnet_95M_<timestamp>/checkpoints/step_010000/checkpoint.pt
 ```
 
 ### Monitor Training Progress

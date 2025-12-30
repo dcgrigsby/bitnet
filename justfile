@@ -12,7 +12,7 @@ exp-tinystories:
     @bash experiments/tinystories/start_tinystories_experiment.sh
 
 exp-baseline:
-    @bash experiments/baseline-95m/start_training_400k.sh
+    @bash experiments/baseline-95m/start_baseline_experiment.sh
 
 # Utilities
 plot-loss run_id:
@@ -21,5 +21,5 @@ plot-loss run_id:
 check-status run_id *args:
     uv run python scripts/check_training_status.py runs/{{run_id}} {{args}}
 
-chat model_path:
-    uv run python scripts/chat_bitnet.py {{model_path}}
+chat *args:
+    uv run python scripts/chat_bitnet.py {{args}}
