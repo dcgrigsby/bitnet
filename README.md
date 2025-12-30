@@ -1,6 +1,6 @@
 # BitNet b1.58 Training Implementation
 
-A PyTorch implementation of **BitNet b1.58** - a transformer-based architecture with ternary weight quantization (1.58 bits) that runs significantly faster on CPUs while maintaining competitive accuracy. 
+A PyTorch implementation of **BitNet b1.58** - a transformer-based architecture with ternary weight quantization (1.58 bits) that runs faster on CPUs. By quantizing weights to {-1, 0, 1}, BitNet replaces expensive matrix multiplications with simple addition operations, dramatically reducing computational cost.
 
 This is an **implementation of the training pipeline** for BitNet, based on the [BitNet: Scaling Bitwise Operations for Efficient Transformer Inference and Learning](https://arxiv.org/abs/2310.11453) paper (Ma et al., 2023).
 
