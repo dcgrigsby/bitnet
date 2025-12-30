@@ -4,9 +4,6 @@ default:
 test *args:
     uv run pytest {{ args }}
 
-train-simple steps='48':
-    uv run python examples/train_simple.py {{steps}}
-
 # Experiments - Run full experiment with default settings
 exp-arithmetic:
     @bash experiments/arithmetic/start_arithmetic_experiment.sh

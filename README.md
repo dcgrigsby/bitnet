@@ -1,6 +1,6 @@
 # BitNet b1.58 Training Implementation
 
-A PyTorch implementation of **BitNet b1.58** - a transformer-based architecture with ternary weight quantization (1.58 bits) that runs faster on CPUs. By quantizing weights to {-1, 0, 1}, BitNet replaces expensive matrix multiplications with simple addition operations, dramatically reducing computational cost.
+A PyTorch implementation of **BitNet b1.58** - a transformer-based architecture with ternary weight quantization (1.58 bits) that runs faster on CPUs. By quantizing weights to {-1, 0, 1}, BitNet replaces expensive matrix multiplications with simple addition operations, reducing computation.
 
 This is an **implementation of the training pipeline** for BitNet, based on the [BitNet: Scaling Bitwise Operations for Efficient Transformer Inference and Learning](https://arxiv.org/abs/2310.11453) paper (Ma et al., 2023).
 
@@ -8,9 +8,10 @@ This is an **implementation of the training pipeline** for BitNet, based on the 
 
 ## Installation
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Optionally, [direnv](https://direnv.net/) provides automatic environment activation.
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. 
 
 Create a virtual environment and install dependencies:
+
 ```bash
 uv venv
 source .venv/bin/activate  # or `direnv allow` if using direnv
@@ -19,19 +20,15 @@ uv sync
 
 ## Commands
 
-This project uses [just](https://github.com/casey/just) for command definitions. Run `just` to see available commands, or check the `justfile` for details.
+This project uses [just](https://github.com/casey/just) for command definitions. 
+
+Run `just` to see available commands, or check the `justfile` for details.
 
 ## Quick Start
 
-### Run a Quick Test
-```bash
-just train-simple 100
-```
-Trains a tiny model for 100 steps to verify everything is working (~1 minute).
-
 ### Run Full Experiments
 
-Each experiment comes with sensible defaults and produces trained checkpoints:
+Each `exp-*` command runs a complete experiment with sensible defaults, provides setup information, and produces trained checkpoints:
 
 ```bash
 just exp-arithmetic     # 5M params, arithmetic task (~30 min)
@@ -151,7 +148,7 @@ just test -k "quantization"
 
 ## Training Tips
 
-- **Start small**: Run `just train-simple 100` first to verify your setup
+- **Start small**: Run `just exp-arithmetic` first to verify your setup works
 - **Monitor training**: Use `just check-status <run_id>` or `just check-status <run_id> --watch` to track progress
 - **Check checkpoints**: Training saves checkpoints in `runs/` - you can resume from these or use them for inference
 - **Customize hyperparameters**: Each experiment's training script accepts command-line arguments for batch size, learning rate, etc.
