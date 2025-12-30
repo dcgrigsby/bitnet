@@ -149,15 +149,6 @@ just test tests/test_model.py
 just test -k "quantization"
 ```
 
-## Technology Stack
-
-- **[PyTorch](https://pytorch.org/)**: Deep learning framework
-- **[Transformers](https://huggingface.co/transformers/)**: Transformer utilities and pretrained models
-- **[Datasets](https://huggingface.co/datasets/)**: HuggingFace datasets integration
-- **[uv](https://docs.astral.sh/uv/)**: Python package management
-- **[just](https://github.com/casey/just)**: Command runner
-- **[direnv](https://direnv.net/)**: Automatic environment activation (optional)
-
 ## Training Tips
 
 - **Start small**: Run `just train-simple 100` first to verify your setup
@@ -175,14 +166,6 @@ For more detailed information:
 - `experiments/TINY_EXPERIMENTS_README.md` - Experiment design details
 - `experiments/*/TRAINING_*_CONFIG.md` - Experiment-specific configuration options
 
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE.txt](LICENSE.txt) file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to open issues or submit pull requests to help improve this project.
-
 ## Citation
 
 If you use this project in your research, please cite the BitNet paper:
@@ -195,7 +178,3 @@ If you use this project in your research, please cite the BitNet paper:
   year={2023}
 }
 ```
-
-## Acknowledgments
-
-Built with [PyTorch](https://pytorch.org/) and based on the BitNet research paper on efficient neural network quantization.
