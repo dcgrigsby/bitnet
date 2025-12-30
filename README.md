@@ -6,87 +6,25 @@ This is an **implementation of the training pipeline** for BitNet, based on the 
 
 **Current status**: Training infrastructure is complete and working. Inference capabilities are available for model evaluation and testing (e.g., chat, tic-tac-toe gameplay), but the optimized BitNet kernels for efficient inference are not yet implemented.
 
-## Requirements
-
-- **Python 3.12** (required by the project)
-- **CUDA-capable GPU** (strongly recommended for practical training)
-- **Disk space**: 10-50GB for experiments depending on which ones you run
-- **Memory**: 8GB+ VRAM for small experiments, 24GB+ for baseline training
-
 ## Installation
 
-### Step 1: Install Direnv (Optional but Recommended)
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management and [just](https://github.com/casey/just) as a command runner. We recommend installing both, and optionally [direnv](https://direnv.net/) for automatic environment activation.
 
-[direnv](https://direnv.net/) automatically loads your Python virtual environment when you `cd` into the project.
-
-**macOS:**
-```bash
-brew install direnv
-```
-
-**Linux:**
-```bash
-# Follow https://direnv.net/docs/installation.html
-```
-
-Then add direnv to your shell profile and allow it in this repo:
-```bash
-direnv allow
-```
-
-### Step 2: Set Up Python Environment with uv
-
-This project uses [uv](https://docs.astral.sh/uv/) - a fast Python package manager.
-
-**Install uv:**
-```bash
-# macOS
-brew install uv
-
-# Or with pip/pipx
-pip install uv
-```
-
-**Create virtual environment:**
+Create a virtual environment and install dependencies:
 ```bash
 uv venv
-```
-
-If using direnv, this activates automatically. Otherwise:
-```bash
-source .venv/bin/activate
-```
-
-**Install dependencies:**
-```bash
+source .venv/bin/activate  # or `direnv allow` if using direnv
 uv sync
 ```
 
-This installs PyTorch and all required packages for training.
+## Commands
 
-## Using `just` for Commands
-
-This project uses [just](https://github.com/casey/just) - a command runner similar to `make` but simpler.
-
-**Install just:**
-```bash
-# macOS
-brew install just
-
-# Linux: https://github.com/casey/just?tab=readme-ov-file#installation
-```
-
-**View all available commands:**
+Run `just` to see all available commands:
 ```bash
 just
 ```
 
-**Run a command:**
-```bash
-just <command-name> [args]
-```
-
-The `justfile` handles calling `uv run` automatically, so you don't need to activate your virtualenv or type that prefix each time.
+Commands are defined in the `justfile` and executed via `uv run`, so you don't need to manually manage the virtualenv.
 
 ## Quick Start
 
