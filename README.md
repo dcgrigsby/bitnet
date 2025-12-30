@@ -109,9 +109,9 @@ bitnet/
 │   ├── tinystories/      # Natural language experiment
 │   └── baseline-95m/     # Larger-scale baseline
 ├── scripts/              # Utility scripts
-│   ├── plot_loss.py      # Visualize training curves
-│   ├── check_training_status.py  # Monitor progress
-│   └── chat_bitnet.py    # Interactive chat with models
+│   ├── plot_loss.py             # Visualize training curves
+│   ├── check_training_status.py # Monitor progress
+│   └── chat_bitnet.py           # Interactive chat with models
 ├── docs/                 # Bitnet papers
 ├── runs/                 # Training outputs (created during training)
 │   └── bitnet_<desc>_<timestamp>/
