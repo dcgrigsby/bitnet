@@ -100,27 +100,27 @@ Each experiment demonstrates different aspects of BitNet training:
 
 ```
 bitnet/
-├── src/bitnet/                  # Core BitNet implementation
-│   ├── model.py                 # BitNet architecture
-│   ├── quantization.py          # Ternary quantization
+├── src/bitnet/                    # Core BitNet implementation
+│   ├── model.py                   # BitNet architecture
+│   ├── quantization.py            # Ternary quantization
 │   └── ...
-├── experiments/                 # Self-contained experiment directories
-│   ├── arithmetic/              # Arithmetic validation experiment
-│   ├── tinystories/             # Natural language experiment
-│   └── baseline-95m/            # Larger-scale baseline
-├── scripts/                     # Utility scripts
-│   ├── plot_loss.py             # Visualize training curves
-│   ├── check_training_status.py # Monitor progress
-│   └── chat_bitnet.py           # Interactive chat with models
-├── docs/                        # Bitnet papers
-├── runs/                        # Training outputs (created during training)
+├── experiments/                   # Self-contained experiment directories
+│   ├── arithmetic/                # Arithmetic validation experiment
+│   ├── tinystories/               # Natural language experiment
+│   └── baseline-95m/              # Larger-scale baseline
+├── scripts/                       # Utility scripts
+│   ├── plot_loss.py               # Visualize training curves
+│   ├── check_training_status.py   # Monitor progress
+│   └── chat_bitnet.py             # Interactive chat with models
+├── docs/                          # Bitnet papers
+├── runs/                          # Training outputs (created during training)
 │   └── bitnet_<desc>_<timestamp>/
 │       ├── checkpoints/
 │       ├── config.yaml
 │       └── logs/
-├── tests/                       # Test suite
-├── justfile                     # Command definitions
-├── pyproject.toml               # Project metadata and dependencies
-├── .envrc                       # Direnv configuration
-└── README.md                    # This file
+├── tests/                         # Test suite
+├── justfile                       # Command definitions
+├── pyproject.toml                 # Project metadata and dependencies
+├── .envrc                         # Direnv configuration
+└── README.md                      # This file
 ```
