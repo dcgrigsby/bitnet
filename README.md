@@ -113,3 +113,28 @@ just train-simple 100
 - `docs/TRAINING_SCRIPTS_README.md` - Training script details
 - `experiments/TINY_EXPERIMENTS_README.md` - Experiment overview
 - `experiments/*/TRAINING_*_CONFIG.md` - Experiment-specific configs
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to open issues or submit pull requests to help improve this project.
+
+## Citation
+
+If you use this project in your research, please cite it appropriately. BitNet 1.58-bit quantization research is based on the following:
+
+```bibtex
+@article{ma2024bitnet,
+  title={BitNet: Scaling Bitwise Operations for Efficient Transformer Inference and Learning},
+  author={Ma, Shuming and Wang, Hongyu and Ma, Lingxiao and Wang, Lei and Wang, Shaoyu and Zhu, Chengyue and Tan, Minghao},
+  journal={arXiv preprint arXiv:2402.18029},
+  year={2024}
+}
+```
+
+## Acknowledgments
+
+Built with [PyTorch](https://pytorch.org/) and inspired by the BitNet research paper on efficient neural network quantization.
