@@ -108,7 +108,7 @@ bitnet/
 │   ├── arithmetic/       # Arithmetic validation experiment
 │   ├── tinystories/      # Natural language experiment
 │   └── baseline-95m/     # Larger-scale baseline
-├── scripts/              # Utility scripts
+├── scripts/                     # Utility scripts
 │   ├── plot_loss.py             # Visualize training curves
 │   ├── check_training_status.py # Monitor progress
 │   └── chat_bitnet.py           # Interactive chat with models
