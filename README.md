@@ -2,7 +2,7 @@
 
 A PyTorch implementation of **BitNet b1.58** - a transformer-based architecture with ternary weight quantization (1.58 bits) for efficient neural network training.
 
-This is an **implementation of the training pipeline** for BitNet, based on the [BitNet: Scaling Bitwise Operations for Efficient Transformer Inference and Learning](https://arxiv.org/abs/2402.18029) paper (Ma et al., 2024).
+This is an **implementation of the training pipeline** for BitNet, based on the [BitNet: Scaling Bitwise Operations for Efficient Transformer Inference and Learning](https://arxiv.org/abs/2310.11453) paper (Ma et al., 2023).
 
 **Current status**: Training infrastructure is complete and working. Inference capabilities are available for model evaluation and testing (e.g., chat, tic-tac-toe gameplay), but the optimized BitNet kernels for efficient inference are not yet implemented.
 
@@ -277,11 +277,11 @@ Contributions are welcome! Please feel free to open issues or submit pull reques
 If you use this project in your research, please cite the BitNet paper:
 
 ```bibtex
-@article{ma2024bitnet,
+@article{ma2023bitnet,
   title={BitNet: Scaling Bitwise Operations for Efficient Transformer Inference and Learning},
   author={Ma, Shuming and Wang, Hongyu and Ma, Lingxiao and Wang, Lei and Wang, Shaoyu and Zhu, Chengyue and Tan, Minghao},
-  journal={arXiv preprint arXiv:2402.18029},
-  year={2024}
+  journal={arXiv preprint arXiv:2310.11453},
+  year={2023}
 }
 ```
 
